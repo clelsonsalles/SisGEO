@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Node & Frontend
+node_modules
+dist
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Java & Maven
+target/
+*.jar
+*.war
+.mvn/
+mvnw
+mvnw.cmd
+.classpath
+.project
+.settings/
+.idea/
+*.iml
+
+# Environments & OS
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.log
+docker-compose.override.yml

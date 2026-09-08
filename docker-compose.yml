@@ -1,0 +1,87 @@
+version: '3.8'
+
+# ========================================================================
+# ORQUESTRADOR DOCKER COMPOSE - SISGOS PRODUÇÃO
+# Serviços:
+#   1. PostgreSQL 16 (Banco Relacional + DDL Init + Volume Persistente)
+#   2. Aplicação Full-Stack (Spring Boot 3 RESTful API + React Frontend)
+# ========================================================================
+
+services:
+  # ----------------------------------------------------------------------
+  # CONTAINER 1: Banco de Dados Relacional PostgreSQL
+  # ----------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: sisgos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sisgos_db}
+      POSTGRES_USER: ${POSTGRES_USER:-sisgos_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sisgos_secret_pass}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      # Volume persistente para os arquivos físicos do banco de dados
+      - postgres_data:/var/lib/postgresql/data
+      # Script DDL executado automaticamente na primeira inicialização do container
+      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sisgos_user} -d ${POSTGRES_DB:-sisgos_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    networks:
+      - sisgos-network
+
+  # ----------------------------------------------------------------------
+  # CONTAINER 2: Aplicação Full-Stack (Back-End Spring Boot + Front-End)
+  # ----------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sisgos/fullstack-app:latest
+    container_name: sisgos-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Variáveis de conexão dinâmica com o container PostgreSQL
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-sisgos_db}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-sisgos_user}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-sisgos_secret_pass}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+      # Ajustes de performance da JVM em container
+      JAVA_TOOL_OPTIONS: >-
+        -XX:+UseContainerSupport
+        -XX:MaxRAMPercentage=75.0
+        -XX:+ExitOnOutOfMemoryError
+        -Djava.security.egd=file:/dev/./urandom
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/api/v1/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - sisgos-network
+
+# ------------------------------------------------------------------------
+# REDES & VOLUMES PERSISTENTES
+# ------------------------------------------------------------------------
+networks:
+  sisgos-network:
+    name: sisgos-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: sisgos_postgres_data
+    driver: local
