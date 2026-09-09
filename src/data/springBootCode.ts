@@ -506,11 +506,12 @@ WORKDIR /app
 COPY package.json package-lock.json* bun.lock* ./
 RUN npm ci || npm install
 
-COPY index.html tsconfig.json vite.config.ts ./
+COPY index.html tsconfig.json vite.config.ts server.ts* ./
 COPY public ./public
 COPY src ./src
 
-RUN npm run build
+# Compila os ativos estáticos do frontend (HTML, JS, CSS) para o Spring Boot
+RUN npm run build:client
 
 # ------------------------------------------------------------------------
 # STAGE 2: Build do Back-End Java (Maven + OpenJDK 21)
@@ -519,7 +520,7 @@ FROM maven:3.9.6-eclipse-temurin-21-alpine AS backend-builder
 WORKDIR /workspace
 
 COPY pom.xml .
-RUN mvn dependency:go-offline -B || true
+RUN mvn dependency:resolve -B || true
 
 COPY src/main/resources ./src/main/resources
 COPY src/main/java ./src/main/java

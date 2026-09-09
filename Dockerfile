@@ -13,12 +13,13 @@ WORKDIR /app
 COPY package.json package-lock.json* bun.lock* ./
 RUN npm ci || npm install
 
-# Copia código-fonte do front-end e executa compilação estática
-COPY index.html tsconfig.json vite.config.ts ./
+# Copia código-fonte do front-end e executa compilação estática dos ativos SPA
+COPY index.html tsconfig.json vite.config.ts server.ts* ./
 COPY public ./public
 COPY src ./src
 
-RUN npm run build
+# Compila os ativos estáticos do frontend (HTML, JS, CSS) destinados ao Spring Boot
+RUN npm run build:client
 
 # ------------------------------------------------------------------------
 # STAGE 2: Build do Back-End Java (Maven + OpenJDK 21)
@@ -28,7 +29,7 @@ WORKDIR /workspace
 
 # Otimização de cache de dependências Maven
 COPY pom.xml .
-RUN mvn dependency:go-offline -B || true
+RUN mvn dependency:resolve -B || true
 
 # Copia código-fonte Java e recursos
 COPY src/main/resources ./src/main/resources
