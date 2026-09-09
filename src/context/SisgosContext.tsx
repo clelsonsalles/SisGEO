@@ -46,6 +46,7 @@ interface SisgosContextType {
   getCalculoValorTotalOS: (osId: number) => number;
   getNomesProfissionaisDistintos: () => string[];
   resetToInitialData: () => void;
+  clearAllData: () => void;
 }
 
 const SisgosContext = createContext<SisgosContextType | undefined>(undefined);
@@ -111,16 +112,28 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem(STORAGE_KEYS.ALOCACOES, JSON.stringify(alocacoes));
   }, [alocacoes]);
 
-  // Reset to default
+  // Reset to default (Seed)
   const resetToInitialData = () => {
     setProjetos(INITIAL_PROJETOS);
     setPerfis(INITIAL_PERFIS);
     setOrdensServico(INITIAL_ORDENS_SERVICO);
     setAlocacoes(INITIAL_ALOCACOES);
-    localStorage.removeItem(STORAGE_KEYS.PROJETOS);
-    localStorage.removeItem(STORAGE_KEYS.PERFIS);
-    localStorage.removeItem(STORAGE_KEYS.ORDENS);
-    localStorage.removeItem(STORAGE_KEYS.ALOCACOES);
+    localStorage.setItem(STORAGE_KEYS.PROJETOS, JSON.stringify(INITIAL_PROJETOS));
+    localStorage.setItem(STORAGE_KEYS.PERFIS, JSON.stringify(INITIAL_PERFIS));
+    localStorage.setItem(STORAGE_KEYS.ORDENS, JSON.stringify(INITIAL_ORDENS_SERVICO));
+    localStorage.setItem(STORAGE_KEYS.ALOCACOES, JSON.stringify(INITIAL_ALOCACOES));
+  };
+
+  // Limpar todos os dados da aplicação (restaura base limpa com tabelas vazias)
+  const clearAllData = () => {
+    setProjetos([]);
+    setPerfis([]);
+    setOrdensServico([]);
+    setAlocacoes([]);
+    localStorage.setItem(STORAGE_KEYS.PROJETOS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.PERFIS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.ORDENS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.ALOCACOES, JSON.stringify([]));
   };
 
   // Projetos CRUD
@@ -322,7 +335,8 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         deleteAlocacao,
         getCalculoValorTotalOS,
         getNomesProfissionaisDistintos,
-        resetToInitialData
+        resetToInitialData,
+        clearAllData
       }}
     >
       {children}

@@ -409,6 +409,24 @@ app.get('/api/v1/dashboard/resumo', (req, res) => {
   });
 });
 
+// 8. Administração: Restaurar dados de demonstração (Seed)
+app.post('/api/v1/admin/reset-seed', (req, res) => {
+  projetos = JSON.parse(JSON.stringify(INITIAL_PROJETOS));
+  perfis = JSON.parse(JSON.stringify(INITIAL_PERFIS));
+  ordensServico = JSON.parse(JSON.stringify(INITIAL_ORDENS_SERVICO));
+  alocacoes = JSON.parse(JSON.stringify(INITIAL_ALOCACOES));
+  res.json({ success: true, message: 'Base de dados restaurada com os dados de demonstração (Seed).' });
+});
+
+// 9. Administração: Limpar todos os dados (Tabelas vazias)
+app.post('/api/v1/admin/clear-data', (req, res) => {
+  projetos = [];
+  perfis = [];
+  ordensServico = [];
+  alocacoes = [];
+  res.json({ success: true, message: 'Todos os dados foram excluídos e as tabelas estão limpas.' });
+});
+
 /* =========================================================================
    Vite Middleware & Static Hosting
 ========================================================================= */

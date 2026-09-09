@@ -20,11 +20,15 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
-  const { ordensServico, alocacoes, perfis, projetos, resetToInitialData } = useSisgos();
+  const { ordensServico, alocacoes, perfis, projetos, resetToInitialData, clearAllData } = useSisgos();
 
   // Dropdown states for click toggle
   const [isParamDropdownOpen, setIsParamDropdownOpen] = useState(false);
   const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'success' | 'danger' } | null>(null);
+
+  // Modal de confirmação interativo no lugar de window.confirm (bloqueado em iFrames)
+  const [confirmAction, setConfirmAction] = useState<'reset' | 'clear' | null>(null);
 
   // Total value of all OSs
   const valorTotalGeral = alocacoes.reduce((acc, curr) => acc + (curr.custo_alocacao || 0), 0);
@@ -35,14 +39,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     setIsAdminDropdownOpen(false);
   };
 
-  const handleResetData = () => {
-    if (
-      window.confirm(
-        'Deseja restaurar a base de dados em memória para os dados iniciais de demonstração (Seed)?\nTodas as alterações manuais serão resetadas.'
-      )
-    ) {
-      resetToInitialData();
-    }
+  const executeResetData = () => {
+    resetToInitialData();
+    fetch('/api/v1/admin/reset-seed', { method: 'POST' }).catch(() => {});
+    setConfirmAction(null);
+    setFeedbackMsg({ text: 'Dados de demonstração (Seed) restaurados com sucesso!', type: 'success' });
+    setTimeout(() => setFeedbackMsg(null), 4000);
+  };
+
+  const executeClearData = () => {
+    clearAllData();
+    fetch('/api/v1/admin/clear-data', { method: 'POST' }).catch(() => {});
+    setConfirmAction(null);
+    setFeedbackMsg({ text: 'Base de dados limpa com sucesso: todas as tabelas foram esvaziadas.', type: 'danger' });
+    setTimeout(() => setFeedbackMsg(null), 4000);
   };
 
   const isParamActive = activeTab === 'param-perfis' || activeTab === 'param-projetos';
@@ -325,9 +335,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
           </div>
 
-          {/* Right side: Global summary and Reset Seed */}
+          {/* Right side: Global summary, Reset Seed and Limpar Dados */}
           <div className="d-flex align-items-center gap-2 ms-auto ms-lg-0">
-            <div className="d-none d-sm-flex align-items-center gap-2 bg-dark-subtle px-3 py-1 rounded-pill border border-secondary text-light">
+            <div className="d-none d-lg-flex align-items-center gap-2 bg-dark-subtle px-3 py-1 rounded-pill border border-secondary text-light">
               <span className="badge bg-success rounded-circle p-1" style={{ width: 8, height: 8 }}></span>
               <span className="small text-white-50">Total OSs:</span>
               <strong className="text-white font-monospace small">
@@ -335,19 +345,190 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               </strong>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-outline-secondary btn-sm text-light d-flex align-items-center gap-1"
-              title="Restaurar dados padrões de demonstração (Seed)"
-              onClick={handleResetData}
-            >
-              <i className="bi bi-arrow-repeat"></i>
-              <span className="d-none d-md-inline small">Restaurar Seed</span>
-            </button>
+            <div className="d-flex flex-column gap-1">
+              <button
+                type="button"
+                id="btn-restaurar-seed"
+                className="btn btn-outline-secondary btn-sm text-light d-flex align-items-center justify-content-center gap-1 py-1 px-2 border-secondary-subtle"
+                style={{ fontSize: '11px', lineHeight: '1.2' }}
+                title="Restaurar dados padrões de demonstração (Seed)"
+                onClick={() => setConfirmAction('reset')}
+              >
+                <i className="bi bi-arrow-repeat text-info"></i>
+                <span>Restaurar Seed</span>
+              </button>
+
+              <button
+                type="button"
+                id="btn-limpar-dados"
+                className="btn btn-danger btn-sm d-flex align-items-center justify-content-center gap-1 py-1 px-2 shadow-sm"
+                style={{ fontSize: '11px', lineHeight: '1.2' }}
+                title="Excluir todos os dados da aplicação e restaurar a base de dados com as tabelas limpas"
+                onClick={() => setConfirmAction('clear')}
+              >
+                <i className="bi bi-trash3"></i>
+                <span className="fw-semibold">Limpar dados</span>
+              </button>
+            </div>
           </div>
 
         </div>
       </div>
+
+      {/* Modal de Confirmação Interativo (Substitui window.confirm bloqueado em iFrames) */}
+      {confirmAction && (
+        <div
+          id="modal-confirmacao-dados"
+          className="modal show d-block"
+          tabIndex={-1}
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)', zIndex: 9999 }}
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setConfirmAction(null);
+          }}
+        >
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '520px' }}>
+            <div className="modal-content border-0 shadow-lg overflow-hidden">
+              {/* Modal Header */}
+              <div
+                className={`modal-header ${
+                  confirmAction === 'clear' ? 'bg-danger text-white' : 'bg-primary text-white'
+                } py-3 px-4`}
+              >
+                <div className="d-flex align-items-center gap-2">
+                  <i
+                    className={`bi ${
+                      confirmAction === 'clear' ? 'bi-exclamation-triangle-fill fs-4' : 'bi-arrow-repeat fs-4'
+                    }`}
+                  ></i>
+                  <h5 className="modal-title fw-bold mb-0 fs-5">
+                    {confirmAction === 'clear'
+                      ? 'Confirmação: Limpar Todos os Dados'
+                      : 'Confirmação: Restaurar Dados Padrão (Seed)'}
+                  </h5>
+                </div>
+                <button
+                  type="button"
+                  id="btn-modal-close-icon"
+                  className="btn-close btn-close-white"
+                  aria-label="Fechar"
+                  onClick={() => setConfirmAction(null)}
+                ></button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="modal-body p-4 bg-white">
+                {confirmAction === 'clear' ? (
+                  <div>
+                    <div className="alert alert-danger d-flex align-items-center gap-2 mb-3 py-2 px-3 border-danger-subtle bg-danger-subtle text-danger-emphasis">
+                      <i className="bi bi-shield-slash-fill fs-5 text-danger flex-shrink-0"></i>
+                      <div className="small fw-semibold">
+                        Ação Destrutiva: todas as tabelas serão esvaziadas (0 registros).
+                      </div>
+                    </div>
+                    <p className="text-dark mb-2">
+                      Tem certeza de que deseja <strong>excluir todos os dados</strong> da aplicação e restaurar a base de
+                      dados para a estrutura inicial limpa?
+                    </p>
+                    <div className="bg-light p-3 rounded border mb-3">
+                      <div className="fw-semibold small text-secondary mb-1">Registros que serão excluídos:</div>
+                      <ul className="text-muted small ps-3 mb-0">
+                        <li>Todas as <strong>Ordens de Serviço</strong> cadastradas ({ordensServico.length} no total)</li>
+                        <li>Todas as <strong>Alocações de Profissionais</strong> ({alocacoes.length} no total)</li>
+                        <li>Todos os <strong>Perfis Contratados</strong> ({perfis.length} no total)</li>
+                        <li>Todos os <strong>Projetos Governamentais</strong> ({projetos.length} no total)</li>
+                      </ul>
+                    </div>
+                    <div className="text-muted small">
+                      <i className="bi bi-info-circle me-1 text-primary"></i>
+                      Após a limpeza, você poderá cadastrar novos registros manualmente ou restaurar a semente (Seed) a qualquer momento.
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="alert alert-primary d-flex align-items-center gap-2 mb-3 py-2 px-3 border-primary-subtle bg-primary-subtle text-primary-emphasis">
+                      <i className="bi bi-arrow-repeat fs-5 text-primary flex-shrink-0"></i>
+                      <div className="small fw-semibold">
+                        Carga inicial de semente (Seed) com valores contratuais oficiais.
+                      </div>
+                    </div>
+                    <p className="text-dark mb-2">
+                      Deseja <strong>restaurar a base de dados</strong> para a semente inicial de demonstração (Seed)?
+                    </p>
+                    <div className="bg-light p-3 rounded border mb-3">
+                      <div className="fw-semibold small text-secondary mb-1">Massa de dados que será restaurada:</div>
+                      <ul className="text-muted small ps-3 mb-0">
+                        <li><strong>4 Projetos</strong> (SGC-CORP, TRANS-SEFAZ, PEU-SAUDE, EDU-DIGITAL)</li>
+                        <li><strong>10 Perfis Contratados</strong> com tabelas hora/mês</li>
+                        <li><strong>4 Ordens de Serviço</strong> de exemplo e suas alocações de equipe</li>
+                      </ul>
+                    </div>
+                    <div className="text-warning-emphasis bg-warning-subtle p-2 rounded border border-warning-subtle small">
+                      <i className="bi bi-exclamation-triangle-fill me-1 text-warning"></i>
+                      Todas as alterações manuais ou novos registros inseridos serão substituídos pela semente padrão.
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="modal-footer bg-light px-4 py-3 d-flex justify-content-end gap-2 border-top">
+                <button
+                  type="button"
+                  id="btn-modal-cancelar"
+                  className="btn btn-outline-secondary px-3"
+                  onClick={() => setConfirmAction(null)}
+                >
+                  Cancelar
+                </button>
+                {confirmAction === 'clear' ? (
+                  <button
+                    type="button"
+                    id="btn-modal-confirmar-limpar"
+                    className="btn btn-danger px-4 fw-semibold d-flex align-items-center gap-2 shadow-sm"
+                    onClick={executeClearData}
+                  >
+                    <i className="bi bi-trash3"></i>
+                    Sim, Limpar Tudo
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    id="btn-modal-confirmar-restaurar"
+                    className="btn btn-primary px-4 fw-semibold d-flex align-items-center gap-2 shadow-sm"
+                    onClick={executeResetData}
+                  >
+                    <i className="bi bi-arrow-repeat"></i>
+                    Sim, Restaurar Seed
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notificação Toast/Banner de ação de dados */}
+      {feedbackMsg && (
+        <div
+          id="toast-dados-feedback"
+          className={`alert ${feedbackMsg.type === 'danger' ? 'alert-danger bg-danger-subtle text-danger-emphasis' : 'alert-success bg-success-subtle text-success-emphasis'} py-1 px-3 mb-0 rounded-0 d-flex align-items-center justify-content-between border-bottom border-top-0 border-start-0 border-end-0 shadow-sm`}
+          style={{ fontSize: '12px' }}
+        >
+          <div className="d-flex align-items-center gap-2 mx-auto">
+            <i className={`bi ${feedbackMsg.type === 'danger' ? 'bi-trash3-fill text-danger' : 'bi-check-circle-fill text-success'}`}></i>
+            <span className="fw-semibold">{feedbackMsg.text}</span>
+          </div>
+          <button
+            type="button"
+            className="btn-close btn-close-sm"
+            style={{ fontSize: '9px' }}
+            aria-label="Fechar"
+            onClick={() => setFeedbackMsg(null)}
+          ></button>
+        </div>
+      )}
 
       {/* 2. Sub-Navbar Bar: ALWAYS VISIBLE SUB-MENUS for easy 1-click navigation */}
       {isParamActive && (
