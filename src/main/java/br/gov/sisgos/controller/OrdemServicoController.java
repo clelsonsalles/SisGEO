@@ -80,6 +80,15 @@ public class OrdemServicoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(alocacaoService.alocarPerfilNaOs(id, dto));
     }
 
+    @PutMapping("/{id}/alocacoes/{alocacaoId}")
+    @Operation(summary = "Atualizar alocação de perfil na Ordem de Serviço")
+    public ResponseEntity<AlocacaoResponseDTO> atualizarAlocacao(
+            @PathVariable Long id,
+            @PathVariable Long alocacaoId,
+            @Valid @RequestBody AlocacaoRequestDTO dto) {
+        return ResponseEntity.ok(alocacaoService.atualizarAlocacao(alocacaoId, dto));
+    }
+
     @DeleteMapping("/{id}/alocacoes/{alocacaoId}")
     @Operation(summary = "Remover alocação de perfil da Ordem de Serviço")
     public ResponseEntity<Void> removerAlocacao(

@@ -1,12 +1,17 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Projeto, PerfilContratado, OrdemServico, AlocacaoPerfilOs } from '../types/models';
 import { INITIAL_PROJETOS, INITIAL_PERFIS, INITIAL_ORDENS_SERVICO, INITIAL_ALOCACOES } from '../data/initialData';
+import { apiService } from '../services/api';
 
 interface SisgosContextType {
   projetos: Projeto[];
   perfis: PerfilContratado[];
   ordensServico: OrdemServico[];
   alocacoes: AlocacaoPerfilOs[];
+  isSyncing: boolean;
+  lastSyncedAt: Date | null;
+  syncError: string | null;
+  refreshData: () => Promise<void>;
   
   // Projetos CRUD
   addProjeto: (p: Omit<Projeto, 'id' | 'criado_em'>) => Projeto;
@@ -45,8 +50,8 @@ interface SisgosContextType {
   // Regras de Negócio & Cálculos
   getCalculoValorTotalOS: (osId: number) => number;
   getNomesProfissionaisDistintos: () => string[];
-  resetToInitialData: () => void;
-  clearAllData: () => void;
+  resetToInitialData: () => Promise<void>;
+  clearAllData: () => Promise<void>;
 }
 
 const SisgosContext = createContext<SisgosContextType | undefined>(undefined);
@@ -56,6 +61,7 @@ const STORAGE_KEYS = {
   PERFIS: 'sisgos_perfis_v1',
   ORDENS: 'sisgos_ordens_v1',
   ALOCACOES: 'sisgos_alocacoes_v1',
+  LAST_SYNC: 'sisgos_last_sync_v1',
 };
 
 export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -95,7 +101,18 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   });
 
-  // Sync with localStorage
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.LAST_SYNC);
+      return saved ? new Date(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Salvar no localStorage como cache offline secundário
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.PROJETOS, JSON.stringify(projetos));
   }, [projetos]);
@@ -112,41 +129,125 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     localStorage.setItem(STORAGE_KEYS.ALOCACOES, JSON.stringify(alocacoes));
   }, [alocacoes]);
 
-  // Reset to default (Seed)
-  const resetToInitialData = () => {
-    setProjetos(INITIAL_PROJETOS);
-    setPerfis(INITIAL_PERFIS);
-    setOrdensServico(INITIAL_ORDENS_SERVICO);
-    setAlocacoes(INITIAL_ALOCACOES);
-    localStorage.setItem(STORAGE_KEYS.PROJETOS, JSON.stringify(INITIAL_PROJETOS));
-    localStorage.setItem(STORAGE_KEYS.PERFIS, JSON.stringify(INITIAL_PERFIS));
-    localStorage.setItem(STORAGE_KEYS.ORDENS, JSON.stringify(INITIAL_ORDENS_SERVICO));
-    localStorage.setItem(STORAGE_KEYS.ALOCACOES, JSON.stringify(INITIAL_ALOCACOES));
+  // Sincronização direta com a base de dados (GET em todas as tabelas)
+  const refreshData = useCallback(async () => {
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      const [loadedPerfis, loadedProjetos, loadedDetalhadas] = await Promise.all([
+        apiService.getPerfis().catch(err => {
+          console.warn('[SisGOS] Aviso ao carregar perfis do banco:', err);
+          return null;
+        }),
+        apiService.getProjetos().catch(err => {
+          console.warn('[SisGOS] Aviso ao carregar projetos do banco:', err);
+          return null;
+        }),
+        apiService.getOrdensServicoDetalhadas().catch(err => {
+          console.warn('[SisGOS] Aviso ao carregar ordens do banco:', err);
+          return null;
+        }),
+      ]);
+
+      if (loadedPerfis !== null) {
+        setPerfis(loadedPerfis);
+        localStorage.setItem(STORAGE_KEYS.PERFIS, JSON.stringify(loadedPerfis));
+      }
+
+      if (loadedProjetos !== null) {
+        setProjetos(loadedProjetos);
+        localStorage.setItem(STORAGE_KEYS.PROJETOS, JSON.stringify(loadedProjetos));
+      }
+
+      if (loadedDetalhadas !== null) {
+        setOrdensServico(loadedDetalhadas.ordens);
+        setAlocacoes(loadedDetalhadas.alocacoes);
+        localStorage.setItem(STORAGE_KEYS.ORDENS, JSON.stringify(loadedDetalhadas.ordens));
+        localStorage.setItem(STORAGE_KEYS.ALOCACOES, JSON.stringify(loadedDetalhadas.alocacoes));
+      }
+
+      const now = new Date();
+      setLastSyncedAt(now);
+      localStorage.setItem(STORAGE_KEYS.LAST_SYNC, now.toISOString());
+    } catch (err: any) {
+      console.error('[SisGOS] Erro na sincronização com banco:', err);
+      setSyncError(err.message || 'Falha ao sincronizar com o banco de dados');
+    } finally {
+      setIsSyncing(false);
+    }
+  }, []);
+
+  // Ao montar o componente, sincroniza imediatamente com o banco de dados
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
+  // Reset to default (Seed no Banco de Dados)
+  const resetToInitialData = async () => {
+    setIsSyncing(true);
+    try {
+      await apiService.adminResetSeed();
+      await refreshData();
+    } catch (err) {
+      console.warn('[SisGOS] Falha no reset-seed via API, aplicando localmente:', err);
+      setProjetos(INITIAL_PROJETOS);
+      setPerfis(INITIAL_PERFIS);
+      setOrdensServico(INITIAL_ORDENS_SERVICO);
+      setAlocacoes(INITIAL_ALOCACOES);
+      localStorage.setItem(STORAGE_KEYS.PROJETOS, JSON.stringify(INITIAL_PROJETOS));
+      localStorage.setItem(STORAGE_KEYS.PERFIS, JSON.stringify(INITIAL_PERFIS));
+      localStorage.setItem(STORAGE_KEYS.ORDENS, JSON.stringify(INITIAL_ORDENS_SERVICO));
+      localStorage.setItem(STORAGE_KEYS.ALOCACOES, JSON.stringify(INITIAL_ALOCACOES));
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
-  // Limpar todos os dados da aplicação (restaura base limpa com tabelas vazias)
-  const clearAllData = () => {
-    setProjetos([]);
-    setPerfis([]);
-    setOrdensServico([]);
-    setAlocacoes([]);
-    localStorage.setItem(STORAGE_KEYS.PROJETOS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.PERFIS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.ORDENS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.ALOCACOES, JSON.stringify([]));
+  // Limpar todos os dados da aplicação e do Banco de Dados (PostgreSQL TRUNCATE CASCADE)
+  const clearAllData = async () => {
+    setIsSyncing(true);
+    try {
+      await apiService.adminClearData();
+    } catch (err) {
+      console.warn('[SisGOS] Falha ao acionar /api/v1/admin/clear-data:', err);
+    } finally {
+      setProjetos([]);
+      setPerfis([]);
+      setOrdensServico([]);
+      setAlocacoes([]);
+      localStorage.setItem(STORAGE_KEYS.PROJETOS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.PERFIS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.ORDENS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.ALOCACOES, JSON.stringify([]));
+      setIsSyncing(false);
+    }
   };
 
   // Projetos CRUD
   const addProjeto = (p: Omit<Projeto, 'id' | 'criado_em'>): Projeto => {
-    const newId = projetos.length > 0 ? Math.max(...projetos.map(x => x.id)) + 1 : 1;
+    const tempId = projetos.length > 0 ? Math.max(...projetos.map(x => x.id)) + 1 : 1;
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
-    const newProjeto: Projeto = { ...p, id: newId, criado_em: now };
-    setProjetos(prev => [newProjeto, ...prev]);
-    return newProjeto;
+    const optimisticProjeto: Projeto = { ...p, id: tempId, criado_em: now };
+    
+    setProjetos(prev => [optimisticProjeto, ...prev]);
+
+    // Persiste no banco de dados via API
+    apiService.createProjeto(p)
+      .then(saved => {
+        setProjetos(prev => prev.map(item => item.id === tempId ? saved : item));
+      })
+      .catch(err => {
+        console.warn('[SisGOS] Não foi possível persistir projeto no backend:', err);
+      });
+
+    return optimisticProjeto;
   };
 
   const updateProjeto = (id: number, p: Partial<Projeto>) => {
     setProjetos(prev => prev.map(item => item.id === id ? { ...item, ...p } : item));
+    apiService.updateProjeto(id, p).catch(err => {
+      console.warn('[SisGOS] Não foi possível atualizar projeto no backend:', err);
+    });
   };
 
   const deleteProjeto = (id: number): { success: boolean; message?: string } => {
@@ -158,20 +259,37 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
     }
     setProjetos(prev => prev.filter(item => item.id !== id));
+    apiService.deleteProjeto(id).catch(err => {
+      console.warn('[SisGOS] Não foi possível excluir projeto no backend:', err);
+    });
     return { success: true };
   };
 
   // Perfis CRUD
   const addPerfil = (p: Omit<PerfilContratado, 'id' | 'criado_em'>): PerfilContratado => {
-    const newId = perfis.length > 0 ? Math.max(...perfis.map(x => x.id)) + 1 : 1;
+    const tempId = perfis.length > 0 ? Math.max(...perfis.map(x => x.id)) + 1 : 1;
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
-    const newPerfil: PerfilContratado = { ...p, id: newId, criado_em: now };
-    setPerfis(prev => [newPerfil, ...prev]);
-    return newPerfil;
+    const optimisticPerfil: PerfilContratado = { ...p, id: tempId, criado_em: now };
+    
+    setPerfis(prev => [optimisticPerfil, ...prev]);
+
+    // Persiste diretamente no banco de dados via API
+    apiService.createPerfil(p)
+      .then(saved => {
+        setPerfis(prev => prev.map(item => item.id === tempId ? saved : item));
+      })
+      .catch(err => {
+        console.warn('[SisGOS] Não foi possível persistir perfil contratado no backend:', err);
+      });
+
+    return optimisticPerfil;
   };
 
   const updatePerfil = (id: number, p: Partial<PerfilContratado>) => {
     setPerfis(prev => prev.map(item => item.id === id ? { ...item, ...p } : item));
+    apiService.updatePerfil(id, p).catch(err => {
+      console.warn('[SisGOS] Não foi possível atualizar perfil no backend:', err);
+    });
   };
 
   const deletePerfil = (id: number): { success: boolean; message?: string } => {
@@ -183,30 +301,51 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
     }
     setPerfis(prev => prev.filter(item => item.id !== id));
+    apiService.deletePerfil(id).catch(err => {
+      console.warn('[SisGOS] Não foi possível excluir perfil no backend:', err);
+    });
     return { success: true };
   };
 
   const toggleVigenciaPerfil = (id: number) => {
     setPerfis(prev => prev.map(p => p.id === id ? { ...p, vigente: !p.vigente } : p));
+    apiService.toggleVigenciaPerfil(id).catch(err => {
+      console.warn('[SisGOS] Não foi possível alternar vigência no backend:', err);
+    });
   };
 
   // Ordens de Serviço CRUD
   const addOrdemServico = (os: Omit<OrdemServico, 'id' | 'criado_em'>): OrdemServico => {
-    const newId = ordensServico.length > 0 ? Math.max(...ordensServico.map(x => x.id)) + 1 : 1;
+    const tempId = ordensServico.length > 0 ? Math.max(...ordensServico.map(x => x.id)) + 1 : 1;
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
-    const newOs: OrdemServico = { ...os, id: newId, criado_em: now };
-    setOrdensServico(prev => [newOs, ...prev]);
-    return newOs;
+    const optimisticOs: OrdemServico = { ...os, id: tempId, criado_em: now };
+    
+    setOrdensServico(prev => [optimisticOs, ...prev]);
+
+    apiService.createOrdemServico(os)
+      .then(saved => {
+        setOrdensServico(prev => prev.map(item => item.id === tempId ? saved : item));
+      })
+      .catch(err => {
+        console.warn('[SisGOS] Não foi possível persistir Ordem de Serviço no backend:', err);
+      });
+
+    return optimisticOs;
   };
 
   const updateOrdemServico = (id: number, os: Partial<OrdemServico>) => {
     setOrdensServico(prev => prev.map(item => item.id === id ? { ...item, ...os } : item));
+    apiService.updateOrdemServico(id, os).catch(err => {
+      console.warn('[SisGOS] Não foi possível atualizar Ordem de Serviço no backend:', err);
+    });
   };
 
   const deleteOrdemServico = (id: number) => {
-    // Cascade delete alocações for this OS
     setAlocacoes(prev => prev.filter(a => a.ordem_servico_id !== id));
     setOrdensServico(prev => prev.filter(item => item.id !== id));
+    apiService.deleteOrdemServico(id).catch(err => {
+      console.warn('[SisGOS] Não foi possível excluir Ordem de Serviço no backend:', err);
+    });
   };
 
   // Alocações N:N
@@ -214,12 +353,6 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return alocacoes.filter(a => a.ordem_servico_id === osId);
   };
 
-  /**
-   * REGRA DE NEGÓCIO DA ALOCAÇÃO:
-   * 1. Cópia do "Custo Mensal do Perfil" da linha associada em Perfis Contratados
-   * 2. Cópia do "Documento de Referência" da linha associada em Perfis Contratados
-   * 3. Cálculo do "Custo da Alocação" = (Percentual de Alocação * Custo Mensal do Perfil) / 100
-   */
   const addAlocacao = (params: {
     ordem_servico_id: number;
     perfil_contratado_id: number;
@@ -235,11 +368,11 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const docRef = perfil.documento_referencia;
     const custoAlocacao = (params.percentual_alocacao * custoMensal) / 100;
 
-    const newId = alocacoes.length > 0 ? Math.max(...alocacoes.map(x => x.id)) + 1 : 1;
+    const tempId = alocacoes.length > 0 ? Math.max(...alocacoes.map(x => x.id)) + 1 : 1;
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     const novaAlocacao: AlocacaoPerfilOs = {
-      id: newId,
+      id: tempId,
       ordem_servico_id: params.ordem_servico_id,
       perfil_contratado_id: params.perfil_contratado_id,
       nome_profissional: params.nome_profissional.trim(),
@@ -247,10 +380,19 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       documento_referencia: docRef,
       custo_mensal_perfil: custoMensal,
       custo_alocacao: Math.round(custoAlocacao * 100) / 100,
-      criado_em: now
+      criado_em: now,
     };
 
     setAlocacoes(prev => [novaAlocacao, ...prev]);
+
+    apiService.createAlocacao(params.ordem_servico_id, params)
+      .then(saved => {
+        setAlocacoes(prev => prev.map(a => a.id === tempId ? saved : a));
+      })
+      .catch(err => {
+        console.warn('[SisGOS] Não foi possível persistir alocação no backend:', err);
+      });
+
     return novaAlocacao;
   };
 
@@ -269,6 +411,9 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const docRef = perfil.documento_referencia;
     const custoAlocacao = (params.percentual_alocacao * custoMensal) / 100;
 
+    const targetAloc = alocacoes.find(a => a.id === id);
+    const osId = targetAloc ? targetAloc.ordem_servico_id : 0;
+
     setAlocacoes(prev => prev.map(a => {
       if (a.id === id) {
         return {
@@ -283,28 +428,31 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       return a;
     }));
+
+    if (osId) {
+      apiService.updateAlocacao(osId, id, params).catch(err => {
+        console.warn('[SisGOS] Não foi possível atualizar alocação no backend:', err);
+      });
+    }
   };
 
   const deleteAlocacao = (id: number) => {
+    const target = alocacoes.find(a => a.id === id);
+    const osId = target ? target.ordem_servico_id : 0;
     setAlocacoes(prev => prev.filter(a => a.id !== id));
+    if (osId) {
+      apiService.deleteAlocacao(osId, id).catch(err => {
+        console.warn('[SisGOS] Não foi possível excluir alocação no backend:', err);
+      });
+    }
   };
 
-  /**
-   * REGRA DE NEGÓCIO:
-   * Cálculo do valor total da Ordem de Serviço:
-   * Somar os valores calculados de cada linha do valor da alocação de perfis na OS.
-   */
   const getCalculoValorTotalOS = (osId: number): number => {
     const osAlocacoes = alocacoes.filter(a => a.ordem_servico_id === osId);
     const total = osAlocacoes.reduce((acc, curr) => acc + (curr.custo_alocacao || 0), 0);
     return Math.round(total * 100) / 100;
   };
 
-  /**
-   * REGRA DE NEGÓCIO:
-   * Campo "Nome do Profissional": Apresentar uma lista com os nomes distintos
-   * que já foram incluídos em todas as outras alocações.
-   */
   const getNomesProfissionaisDistintos = (): string[] => {
     const nomes = alocacoes
       .map(a => a.nome_profissional?.trim())
@@ -319,6 +467,10 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         perfis,
         ordensServico,
         alocacoes,
+        isSyncing,
+        lastSyncedAt,
+        syncError,
+        refreshData,
         addProjeto,
         updateProjeto,
         deleteProjeto,
@@ -336,7 +488,7 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         getCalculoValorTotalOS,
         getNomesProfissionaisDistintos,
         resetToInitialData,
-        clearAllData
+        clearAllData,
       }}
     >
       {children}

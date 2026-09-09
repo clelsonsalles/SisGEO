@@ -32,6 +32,12 @@ spring:
         jdbc:
           batch_size: 25
 
+  # Configuração Jackson para compatibilidade snake_case com o frontend React e banco
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    deserialization:
+      fail-on-unknown-properties: false
+
   # Configuração para servir o frontend React SPA a partir de static/
   web:
     resources:

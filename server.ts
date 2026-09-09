@@ -289,6 +289,55 @@ app.post('/api/v1/ordens-servico/:id/alocacoes', (req, res) => {
   });
 });
 
+app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
+  const alocacaoId = Number(req.params.alocacaoId);
+  const alocIndex = alocacoes.findIndex((a) => a.id === alocacaoId);
+  if (alocIndex === -1) {
+    return res.status(404).json({ error: `Alocação com ID ${alocacaoId} não encontrada.` });
+  }
+
+  const { perfilContratadoId, perfil_contratado_id, nomeProfissional, nome_profissional, percentualAlocacao, percentual_alocacao } = req.body;
+  const targetPerfilId = Number(perfilContratadoId ?? perfil_contratado_id);
+  const targetNome = String(nomeProfissional ?? nome_profissional ?? '').trim();
+  const targetPercentual = Number(percentualAlocacao ?? percentual_alocacao ?? 0);
+
+  const perfil = perfis.find((p) => p.id === targetPerfilId);
+  if (!perfil) {
+    return res.status(400).json({ error: `Perfil com ID ${targetPerfilId} não encontrado.` });
+  }
+
+  const custoBase = perfil.custo_mensal_perfil;
+  const custoCalculado = Number(((targetPercentual * custoBase) / 100).toFixed(2));
+
+  alocacoes[alocIndex] = {
+    ...alocacoes[alocIndex],
+    perfil_contratado_id: perfil.id,
+    nome_profissional: targetNome,
+    percentual_alocacao: targetPercentual,
+    documento_referencia: perfil.documento_referencia,
+    custo_mensal_perfil: custoBase,
+    custo_alocacao: custoCalculado,
+  };
+
+  res.json(alocacoes[alocIndex]);
+});
+
+app.delete('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
+  const alocacaoId = Number(req.params.alocacaoId);
+  const index = alocacoes.findIndex((a) => a.id === alocacaoId);
+  if (index === -1) {
+    return res.status(404).json({ error: `Alocação com ID ${alocacaoId} não encontrada.` });
+  }
+
+  const osId = alocacoes[index].ordem_servico_id;
+  alocacoes.splice(index, 1);
+
+  res.json({
+    message: `Alocação #${alocacaoId} removida com sucesso.`,
+    novo_total_os: Number(getOsTotal(osId).toFixed(2)),
+  });
+});
+
 app.delete('/api/v1/ordens-servico/alocacoes/:alocacaoId', (req, res) => {
   const alocacaoId = Number(req.params.alocacaoId);
   const index = alocacoes.findIndex((a) => a.id === alocacaoId);
@@ -355,9 +404,126 @@ app.get('/api/v1/perfis-contratados/:id', (req, res) => {
   res.json(perfil);
 });
 
+app.put('/api/v1/perfis-contratados/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const index = perfis.findIndex((p) => p.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: `Perfil #${id} não encontrado.` });
+  }
+
+  const {
+    item_contratacao,
+    itemContratacao,
+    nome_perfil,
+    nomePerfil,
+    documento_referencia,
+    documentoReferencia,
+    vigente,
+    custo_mensal_perfil,
+    custoMensalPerfil,
+    quantidade_mensal_contratada,
+    quantidadeMensalContratada,
+  } = req.body;
+
+  perfis[index] = {
+    ...perfis[index],
+    item_contratacao: item_contratacao ?? itemContratacao ?? perfis[index].item_contratacao,
+    nome_perfil: nome_perfil ?? nomePerfil ?? perfis[index].nome_perfil,
+    documento_referencia: documento_referencia ?? documentoReferencia ?? perfis[index].documento_referencia,
+    vigente: vigente !== undefined ? Boolean(vigente) : perfis[index].vigente,
+    custo_mensal_perfil: Number(custo_mensal_perfil ?? custoMensalPerfil ?? perfis[index].custo_mensal_perfil),
+    quantidade_mensal_contratada: Number(quantidade_mensal_contratada ?? quantidadeMensalContratada ?? perfis[index].quantidade_mensal_contratada),
+  };
+
+  res.json(perfis[index]);
+});
+
+app.patch('/api/v1/perfis-contratados/:id/vigencia', (req, res) => {
+  const id = Number(req.params.id);
+  const index = perfis.findIndex((p) => p.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: `Perfil #${id} não encontrado.` });
+  }
+
+  perfis[index].vigente = !perfis[index].vigente;
+  res.json(perfis[index]);
+});
+
+app.delete('/api/v1/perfis-contratados/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const index = perfis.findIndex((p) => p.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: `Perfil #${id} não encontrado.` });
+  }
+
+  const hasAloc = alocacoes.some((a) => a.perfil_contratado_id === id);
+  if (hasAloc) {
+    return res.status(409).json({ error: 'Não é possível excluir o perfil pois existem alocações vinculadas.' });
+  }
+
+  perfis.splice(index, 1);
+  res.status(204).send();
+});
+
 // 6. Projetos
 app.get('/api/v1/projetos', (req, res) => {
   res.json(projetos);
+});
+
+app.get('/api/v1/projetos/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const projeto = projetos.find((p) => p.id === id);
+  if (!projeto) {
+    return res.status(404).json({ error: `Projeto #${id} não encontrado.` });
+  }
+  res.json(projeto);
+});
+
+app.put('/api/v1/projetos/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const index = projetos.findIndex((p) => p.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: `Projeto #${id} não encontrado.` });
+  }
+
+  const {
+    nome_projeto,
+    nomeProjeto,
+    sigla_projeto,
+    siglaProjeto,
+    descricao,
+    nome_secretaria,
+    nomeSecretaria,
+    sigla_secretaria,
+    siglaSecretaria,
+  } = req.body;
+
+  projetos[index] = {
+    ...projetos[index],
+    nome_projeto: nome_projeto ?? nomeProjeto ?? projetos[index].nome_projeto,
+    sigla_projeto: sigla_projeto ?? siglaProjeto ?? projetos[index].sigla_projeto,
+    descricao: descricao !== undefined ? descricao : projetos[index].descricao,
+    nome_secretaria: nome_secretaria ?? nomeSecretaria ?? projetos[index].nome_secretaria,
+    sigla_secretaria: sigla_secretaria ?? siglaSecretaria ?? projetos[index].sigla_secretaria,
+  };
+
+  res.json(projetos[index]);
+});
+
+app.delete('/api/v1/projetos/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const index = projetos.findIndex((p) => p.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: `Projeto #${id} não encontrado.` });
+  }
+
+  const hasOs = ordensServico.some((os) => os.projeto_id === id);
+  if (hasOs) {
+    return res.status(409).json({ error: 'Não é possível excluir o projeto pois existem Ordens de Serviço vinculadas.' });
+  }
+
+  projetos.splice(index, 1);
+  res.status(204).send();
 });
 
 app.post('/api/v1/projetos', (req, res) => {

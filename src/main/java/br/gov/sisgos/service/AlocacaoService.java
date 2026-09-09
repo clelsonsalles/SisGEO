@@ -57,6 +57,21 @@ public class AlocacaoService {
     }
 
     @Transactional
+    public AlocacaoResponseDTO atualizarAlocacao(Long alocacaoId, AlocacaoRequestDTO dto) {
+        AlocacaoPerfilOs alocacao = alocacaoRepository.findById(alocacaoId)
+                .orElseThrow(() -> new EntityNotFoundException("Alocação não encontrada com ID: " + alocacaoId));
+
+        PerfilContratado perfil = perfilRepository.findById(dto.getPerfilContratadoId())
+                .orElseThrow(() -> new EntityNotFoundException("Perfil contratado não encontrado com ID: " + dto.getPerfilContratadoId()));
+
+        alocacao.setNomeProfissional(dto.getNomeProfissional().trim());
+        alocacao.setPercentualAlocacao(dto.getPercentualAlocacao());
+        alocacao.aplicarRegraDeNegocio(perfil);
+
+        return AlocacaoResponseDTO.fromEntity(alocacao);
+    }
+
+    @Transactional
     public void removerAlocacao(Long alocacaoId) {
         if (!alocacaoRepository.existsById(alocacaoId)) {
             throw new EntityNotFoundException("Alocação não encontrada com ID: " + alocacaoId);

@@ -20,12 +20,23 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
-  const { ordensServico, alocacoes, perfis, projetos, resetToInitialData, clearAllData } = useSisgos();
+  const {
+    ordensServico,
+    alocacoes,
+    perfis,
+    projetos,
+    resetToInitialData,
+    clearAllData,
+    refreshData,
+    isSyncing,
+    lastSyncedAt,
+  } = useSisgos();
 
   // Dropdown states for click toggle
   const [isParamDropdownOpen, setIsParamDropdownOpen] = useState(false);
   const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'success' | 'danger' } | null>(null);
+  const [isActionInProgress, setIsActionInProgress] = useState(false);
 
   // Modal de confirmação interativo no lugar de window.confirm (bloqueado em iFrames)
   const [confirmAction, setConfirmAction] = useState<'reset' | 'clear' | null>(null);
@@ -39,20 +50,60 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     setIsAdminDropdownOpen(false);
   };
 
-  const executeResetData = () => {
-    resetToInitialData();
-    fetch('/api/v1/admin/reset-seed', { method: 'POST' }).catch(() => {});
-    setConfirmAction(null);
-    setFeedbackMsg({ text: 'Dados de demonstração (Seed) restaurados com sucesso!', type: 'success' });
+  const handleSyncDatabase = async () => {
+    try {
+      await refreshData();
+      setFeedbackMsg({
+        text: 'Dados sincronizados diretamente com o banco de dados PostgreSQL com sucesso!',
+        type: 'success',
+      });
+    } catch (err: any) {
+      setFeedbackMsg({
+        text: 'Falha ao sincronizar com o banco: ' + (err.message || 'Erro de conexão'),
+        type: 'danger',
+      });
+    }
     setTimeout(() => setFeedbackMsg(null), 4000);
   };
 
-  const executeClearData = () => {
-    clearAllData();
-    fetch('/api/v1/admin/clear-data', { method: 'POST' }).catch(() => {});
-    setConfirmAction(null);
-    setFeedbackMsg({ text: 'Base de dados limpa com sucesso: todas as tabelas foram esvaziadas.', type: 'danger' });
-    setTimeout(() => setFeedbackMsg(null), 4000);
+  const executeResetData = async () => {
+    setIsActionInProgress(true);
+    try {
+      await resetToInitialData();
+      setConfirmAction(null);
+      setFeedbackMsg({
+        text: 'Dados de demonstração (Seed) restaurados no banco de dados e na interface com sucesso!',
+        type: 'success',
+      });
+    } catch (err: any) {
+      setFeedbackMsg({
+        text: 'Erro ao restaurar dados: ' + (err.message || 'Falha no servidor'),
+        type: 'danger',
+      });
+    } finally {
+      setIsActionInProgress(false);
+    }
+    setTimeout(() => setFeedbackMsg(null), 5000);
+  };
+
+  const executeClearData = async () => {
+    setIsActionInProgress(true);
+    try {
+      await clearAllData();
+      setConfirmAction(null);
+      setFeedbackMsg({
+        text: 'Base de dados limpa com sucesso: todas as tabelas foram esvaziadas fisicamente no banco de dados.',
+        type: 'danger',
+      });
+    } catch (err: any) {
+      setFeedbackMsg({
+        text: 'Erro ao limpar banco: ' + (err.message || 'Falha no servidor'),
+        type: 'danger',
+      });
+    } finally {
+      setIsActionInProgress(false);
+    }
+    setTimeout(() => setFeedbackMsg(null), 5000);
   };
 
   const isParamActive = activeTab === 'param-perfis' || activeTab === 'param-projetos';
@@ -345,16 +396,32 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               </strong>
             </div>
 
-            <div className="d-flex flex-column gap-1">
+            <div className="d-flex align-items-center gap-1">
+              <button
+                type="button"
+                id="btn-sincronizar-banco"
+                className={`btn btn-sm ${
+                  isSyncing ? 'btn-info text-dark fw-bold' : 'btn-outline-info text-info'
+                } d-flex align-items-center justify-content-center gap-1 py-1 px-2 border-info-subtle shadow-sm`}
+                style={{ fontSize: '11px', lineHeight: '1.2' }}
+                title="Sincronizar dados diretamente com a base de dados PostgreSQL"
+                onClick={handleSyncDatabase}
+                disabled={isSyncing || isActionInProgress}
+              >
+                <i className={`bi bi-arrow-repeat ${isSyncing ? 'spin' : ''}`}></i>
+                <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar'}</span>
+              </button>
+
               <button
                 type="button"
                 id="btn-restaurar-seed"
                 className="btn btn-outline-secondary btn-sm text-light d-flex align-items-center justify-content-center gap-1 py-1 px-2 border-secondary-subtle"
                 style={{ fontSize: '11px', lineHeight: '1.2' }}
-                title="Restaurar dados padrões de demonstração (Seed)"
+                title="Restaurar dados padrões de demonstração (Seed) diretamente no banco de dados"
                 onClick={() => setConfirmAction('reset')}
+                disabled={isSyncing || isActionInProgress}
               >
-                <i className="bi bi-arrow-repeat text-info"></i>
+                <i className="bi bi-database-fill-gear text-warning"></i>
                 <span>Restaurar Seed</span>
               </button>
 
@@ -363,8 +430,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 id="btn-limpar-dados"
                 className="btn btn-danger btn-sm d-flex align-items-center justify-content-center gap-1 py-1 px-2 shadow-sm"
                 style={{ fontSize: '11px', lineHeight: '1.2' }}
-                title="Excluir todos os dados da aplicação e restaurar a base de dados com as tabelas limpas"
+                title="Excluir todos os dados do banco de dados (TRUNCATE) e restaurar as tabelas limpas"
                 onClick={() => setConfirmAction('clear')}
+                disabled={isSyncing || isActionInProgress}
               >
                 <i className="bi bi-trash3"></i>
                 <span className="fw-semibold">Limpar dados</span>
@@ -479,6 +547,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   id="btn-modal-cancelar"
                   className="btn btn-outline-secondary px-3"
                   onClick={() => setConfirmAction(null)}
+                  disabled={isActionInProgress}
                 >
                   Cancelar
                 </button>
@@ -488,9 +557,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                     id="btn-modal-confirmar-limpar"
                     className="btn btn-danger px-4 fw-semibold d-flex align-items-center gap-2 shadow-sm"
                     onClick={executeClearData}
+                    disabled={isActionInProgress}
                   >
-                    <i className="bi bi-trash3"></i>
-                    Sim, Limpar Tudo
+                    {isActionInProgress ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span>Limpando Banco...</span>
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-trash3"></i>
+                        <span>Sim, Limpar Tudo no Banco</span>
+                      </>
+                    )}
                   </button>
                 ) : (
                   <button
@@ -498,9 +577,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                     id="btn-modal-confirmar-restaurar"
                     className="btn btn-primary px-4 fw-semibold d-flex align-items-center gap-2 shadow-sm"
                     onClick={executeResetData}
+                    disabled={isActionInProgress}
                   >
-                    <i className="bi bi-arrow-repeat"></i>
-                    Sim, Restaurar Seed
+                    {isActionInProgress ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span>Restaurando Banco...</span>
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-arrow-repeat"></i>
+                        <span>Sim, Restaurar Seed no Banco</span>
+                      </>
+                    )}
                   </button>
                 )}
               </div>
