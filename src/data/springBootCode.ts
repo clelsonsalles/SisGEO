@@ -177,9 +177,6 @@ public class OrdemServico {
     @Column(name = "ano_referencia", nullable = false)
     private Integer anoReferencia;
 
-    @Column(name = "mes_referencia", length = 20, nullable = false)
-    private String mesReferencia;
-
     @Column(name = "alocacao_sgc", nullable = false)
     private Boolean alocacaoSgc = false;
 
@@ -246,7 +243,13 @@ import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "alocacoes_perfil_os")
+@Table(
+    name = "alocacoes_perfil_os",
+    uniqueConstraints = @UniqueConstraint(
+        name = "unq_alocacao_os_perfil_mes",
+        columnNames = {"ordem_servico_id", "perfil_contratado_id", "mes_referencia"}
+    )
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -265,6 +268,9 @@ public class AlocacaoPerfilOs {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "perfil_contratado_id", nullable = false)
     private PerfilContratado perfilContratado;
+
+    @Column(name = "mes_referencia", length = 20, nullable = false)
+    private String mesReferencia;
 
     @Column(name = "nome_profissional", length = 200, nullable = false)
     private String nomeProfissional;
@@ -677,7 +683,6 @@ CREATE TABLE IF NOT EXISTS ordens_servico (
     projeto_id BIGINT NOT NULL,
     numero_os INTEGER NOT NULL,
     ano_referencia INTEGER NOT NULL,
-    mes_referencia VARCHAR(20) NOT NULL,
     alocacao_sgc BOOLEAN NOT NULL DEFAULT FALSE,
     entrega_sgc BOOLEAN NOT NULL DEFAULT FALSE,
     descricao_sgc BOOLEAN NOT NULL DEFAULT FALSE,
@@ -688,7 +693,7 @@ CREATE TABLE IF NOT EXISTS ordens_servico (
     CONSTRAINT fk_os_projeto FOREIGN KEY (projeto_id) REFERENCES projetos (id) ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT chk_os_numero_positivo CHECK (numero_os > 0),
     CONSTRAINT chk_os_ano_valido CHECK (ano_referencia BETWEEN 2000 AND 2100),
-    CONSTRAINT unq_os_projeto_ano_mes UNIQUE (projeto_id, numero_os, ano_referencia)
+    CONSTRAINT unq_os_projeto_ano_num UNIQUE (projeto_id, numero_os, ano_referencia)
 );
 
 -- 4. Tabela: Alocações de Perfis na OS (N:N)
@@ -696,6 +701,7 @@ CREATE TABLE IF NOT EXISTS alocacoes_perfil_os (
     id BIGSERIAL PRIMARY KEY,
     ordem_servico_id BIGINT NOT NULL,
     perfil_contratado_id BIGINT NOT NULL,
+    mes_referencia VARCHAR(20) NOT NULL,
     nome_profissional VARCHAR(200) NOT NULL,
     percentual_alocacao INTEGER NOT NULL,
     documento_referencia VARCHAR(255) NOT NULL,
@@ -704,7 +710,15 @@ CREATE TABLE IF NOT EXISTS alocacoes_perfil_os (
     criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_alocacao_os FOREIGN KEY (ordem_servico_id) REFERENCES ordens_servico (id) ON DELETE CASCADE,
     CONSTRAINT fk_alocacao_perfil FOREIGN KEY (perfil_contratado_id) REFERENCES perfis_contratados (id),
-    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0 AND percentual_alocacao <= 100)
+    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0 AND percentual_alocacao <= 100),
+    CONSTRAINT chk_os_mes_valido CHECK (
+        mes_referencia IN (
+            'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 
+            'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 
+            'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
+        )
+    ),
+    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
 );
 
 -- 5. Trigger PL/pgSQL

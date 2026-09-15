@@ -62,6 +62,7 @@ const SAMPLE_PROFILES: ContractedProfileSample[] = [
 export const BusinessRuleSimulator: React.FC = () => {
   const [selectedProfileId, setSelectedProfileId] = useState<number>(1);
   const [selectedOsId, setSelectedOsId] = useState<number>(101);
+  const [mesReferencia, setMesReferencia] = useState<string>('JANEIRO');
   const [nomeProfissional, setNomeProfissional] = useState<string>('Carlos Eduardo Mendes');
   const [percentualAlocacao, setPercentualAlocacao] = useState<number>(100);
   const [copiedSql, setCopiedSql] = useState<boolean>(false);
@@ -80,11 +81,13 @@ export const BusinessRuleSimulator: React.FC = () => {
 INSERT INTO alocacoes_perfil_os (
     ordem_servico_id,
     perfil_contratado_id,
+    mes_referencia,
     nome_profissional,
     percentual_alocacao
 ) VALUES (
     (SELECT id FROM ordens_servico WHERE numero_os = ${selectedOsId} LIMIT 1),
     ${selectedProfile.id},
+    '${mesReferencia}',
     '${nomeProfissional}',
     ${percentualAlocacao}
 );
@@ -142,10 +145,27 @@ INSERT INTO alocacoes_perfil_os (
               onChange={(e) => setSelectedOsId(Number(e.target.value))}
               className="w-full px-3 py-2 text-xs rounded-lg bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-indigo-500"
             >
-              <option value={101}>OS nº 101/2026 - SGC-CORP (SEPLAG) - JANEIRO</option>
-              <option value={102}>OS nº 102/2026 - SGC-CORP (SEPLAG) - FEVEREIRO</option>
-              <option value={201}>OS nº 201/2026 - TRANS-SEFAZ (SEFAZ) - JANEIRO</option>
-              <option value={301}>OS nº 301/2026 - PEU-SAUDE (SES) - MARÇO</option>
+              <option value={101}>OS nº 101/2026 - SGC-CORP (SEPLAG)</option>
+              <option value={102}>OS nº 102/2026 - SGC-CORP (SEPLAG)</option>
+              <option value={201}>OS nº 201/2026 - TRANS-SEFAZ (SEFAZ)</option>
+              <option value={301}>OS nº 301/2026 - PEU-SAUDE (SES)</option>
+            </select>
+          </div>
+
+          {/* Mês de Referência da Alocação */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-300">Mês de Referência da Alocação:</label>
+            <select
+              value={mesReferencia}
+              onChange={(e) => setMesReferencia(e.target.value)}
+              className="w-full px-3 py-2 text-xs rounded-lg bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-indigo-500"
+            >
+              {[
+                'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
+                'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
+              ].map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
             </select>
           </div>
 

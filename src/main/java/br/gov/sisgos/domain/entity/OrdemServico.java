@@ -30,9 +30,6 @@ public class OrdemServico {
     @Column(name = "ano_referencia", nullable = false)
     private Integer anoReferencia;
 
-    @Column(name = "mes_referencia", length = 20, nullable = false)
-    private String mesReferencia;
-
     @Column(name = "alocacao_sgc", nullable = false)
     @Builder.Default
     private Boolean alocacaoSgc = false;

@@ -7,7 +7,7 @@ import {
   INITIAL_ORDENS_SERVICO,
   INITIAL_ALOCACOES,
 } from './src/data/initialData';
-import { Projeto, PerfilContratado, OrdemServico, AlocacaoPerfilOs } from './src/types/models';
+import { Projeto, PerfilContratado, OrdemServico, AlocacaoPerfilOs, MesReferencia, MESES_REFERENCIA as MESES_VALIDOS } from './src/types/models';
 
 const app = express();
 const PORT = 3000;
@@ -78,7 +78,6 @@ app.post('/api/v1/ordens-servico', (req, res) => {
     projeto_id,
     numero_os,
     ano_referencia,
-    mes_referencia,
     alocacao_sgc,
     entrega_sgc,
     descricao_sgc,
@@ -86,8 +85,8 @@ app.post('/api/v1/ordens-servico', (req, res) => {
     situacao_passivo_2026,
   } = req.body;
 
-  if (!projeto_id || !numero_os || !ano_referencia || !mes_referencia) {
-    return res.status(400).json({ error: 'Campos obrigatórios ausentes (projeto_id, numero_os, ano_referencia, mes_referencia).' });
+  if (!projeto_id || !numero_os || !ano_referencia) {
+    return res.status(400).json({ error: 'Campos obrigatórios ausentes (projeto_id, numero_os, ano_referencia).' });
   }
 
   const projExists = projetos.some((p) => p.id === Number(projeto_id));
@@ -100,7 +99,6 @@ app.post('/api/v1/ordens-servico', (req, res) => {
     projeto_id: Number(projeto_id),
     numero_os: Number(numero_os),
     ano_referencia: Number(ano_referencia),
-    mes_referencia,
     alocacao_sgc: Boolean(alocacao_sgc),
     entrega_sgc: Boolean(entrega_sgc),
     descricao_sgc: Boolean(descricao_sgc),
@@ -125,6 +123,7 @@ app.get('/api/v1/ordens-servico/detalhadas', (req, res) => {
           id: a.id,
           ordem_servico_id: a.ordem_servico_id,
           perfil_contratado_id: a.perfil_contratado_id,
+          mes_referencia: a.mes_referencia,
           nome_profissional: a.nome_profissional,
           percentual_alocacao: a.percentual_alocacao,
           documento_referencia: a.documento_referencia,
@@ -150,7 +149,6 @@ app.get('/api/v1/ordens-servico/detalhadas', (req, res) => {
       id: os.id,
       numero_os: os.numero_os,
       ano_referencia: os.ano_referencia,
-      mes_referencia: os.mes_referencia,
       alocacao_sgc: os.alocacao_sgc,
       entrega_sgc: os.entrega_sgc,
       descricao_sgc: os.descricao_sgc,
@@ -250,17 +248,41 @@ app.post('/api/v1/ordens-servico/:id/alocacoes', (req, res) => {
     return res.status(404).json({ error: `Ordem de Serviço com ID ${osId} não encontrada.` });
   }
 
-  const { perfil_contratado_id, nome_profissional, percentual_alocacao } = req.body;
-  if (!perfil_contratado_id || !nome_profissional || percentual_alocacao === undefined) {
+  const { perfil_contratado_id, perfilContratadoId, nome_profissional, nomeProfissional, percentual_alocacao, percentualAlocacao, mes_referencia, mesReferencia } = req.body;
+  const targetPerfilId = Number(perfil_contratado_id ?? perfilContratadoId);
+  const targetNome = String(nome_profissional ?? nomeProfissional ?? '').trim();
+  const rawPercentual = percentual_alocacao ?? percentualAlocacao;
+
+  if (!targetPerfilId || !targetNome || rawPercentual === undefined) {
     return res.status(400).json({ error: 'Campos perfil_contratado_id, nome_profissional e percentual_alocacao são obrigatórios.' });
   }
 
-  const perfil = perfis.find((p) => p.id === Number(perfil_contratado_id));
-  if (!perfil) {
-    return res.status(400).json({ error: `Perfil contratado com ID ${perfil_contratado_id} não encontrado.` });
+  // Validação CONSTRAINT chk_os_mes_valido
+  const targetMes = String(mes_referencia ?? mesReferencia ?? 'JANEIRO').toUpperCase().trim() as MesReferencia;
+  if (!MESES_VALIDOS.includes(targetMes)) {
+    return res.status(400).json({
+      error: `Violação da restrição CHECK (chk_os_mes_valido): Mês de referência inválido '${targetMes}'.`,
+    });
   }
 
-  const percentual = Number(percentual_alocacao);
+  const perfil = perfis.find((p) => p.id === targetPerfilId);
+  if (!perfil) {
+    return res.status(400).json({ error: `Perfil contratado com ID ${targetPerfilId} não encontrado.` });
+  }
+
+  // Validação CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
+  const isDuplicate = alocacoes.some(
+    (a) => a.ordem_servico_id === osId &&
+           a.perfil_contratado_id === perfil.id &&
+           a.mes_referencia === targetMes
+  );
+  if (isDuplicate) {
+    return res.status(409).json({
+      error: `Violação da restrição UNIQUE (unq_alocacao_os_perfil_mes): Já existe uma alocação para o perfil '${perfil.nome_perfil}' no mês ${targetMes} nesta Ordem de Serviço #${os.numero_os}.`,
+    });
+  }
+
+  const percentual = Number(rawPercentual);
   if (percentual <= 0 || percentual > 100) {
     return res.status(400).json({ error: 'O percentual de alocação deve estar entre 1 e 100%.' });
   }
@@ -273,7 +295,8 @@ app.post('/api/v1/ordens-servico/:id/alocacoes', (req, res) => {
     id: ++nextAlocacaoId,
     ordem_servico_id: osId,
     perfil_contratado_id: perfil.id,
-    nome_profissional: String(nome_profissional).trim(),
+    mes_referencia: targetMes,
+    nome_profissional: targetNome,
     percentual_alocacao: percentual,
     documento_referencia: perfil.documento_referencia,
     custo_mensal_perfil: custoBase,
@@ -296,7 +319,7 @@ app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
     return res.status(404).json({ error: `Alocação com ID ${alocacaoId} não encontrada.` });
   }
 
-  const { perfilContratadoId, perfil_contratado_id, nomeProfissional, nome_profissional, percentualAlocacao, percentual_alocacao } = req.body;
+  const { perfilContratadoId, perfil_contratado_id, nomeProfissional, nome_profissional, percentualAlocacao, percentual_alocacao, mes_referencia, mesReferencia } = req.body;
   const targetPerfilId = Number(perfilContratadoId ?? perfil_contratado_id);
   const targetNome = String(nomeProfissional ?? nome_profissional ?? '').trim();
   const targetPercentual = Number(percentualAlocacao ?? percentual_alocacao ?? 0);
@@ -306,12 +329,34 @@ app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
     return res.status(400).json({ error: `Perfil com ID ${targetPerfilId} não encontrado.` });
   }
 
+  const rawMes = mes_referencia ?? mesReferencia;
+  const targetMes = (rawMes ? String(rawMes).toUpperCase().trim() : alocacoes[alocIndex].mes_referencia) as MesReferencia;
+  if (!MESES_VALIDOS.includes(targetMes)) {
+    return res.status(400).json({
+      error: `Violação da restrição CHECK (chk_os_mes_valido): Mês de referência inválido '${targetMes}'.`,
+    });
+  }
+
+  // Validação CONSTRAINT unq_alocacao_os_perfil_mes
+  const isDuplicate = alocacoes.some(
+    (a) => a.id !== alocacaoId &&
+           a.ordem_servico_id === alocacoes[alocIndex].ordem_servico_id &&
+           a.perfil_contratado_id === perfil.id &&
+           a.mes_referencia === targetMes
+  );
+  if (isDuplicate) {
+    return res.status(409).json({
+      error: `Violação da restrição UNIQUE (unq_alocacao_os_perfil_mes): Já existe outra alocação para o perfil '${perfil.nome_perfil}' no mês ${targetMes} nesta Ordem de Serviço.`,
+    });
+  }
+
   const custoBase = perfil.custo_mensal_perfil;
   const custoCalculado = Number(((targetPercentual * custoBase) / 100).toFixed(2));
 
   alocacoes[alocIndex] = {
     ...alocacoes[alocIndex],
     perfil_contratado_id: perfil.id,
+    mes_referencia: targetMes,
     nome_profissional: targetNome,
     percentual_alocacao: targetPercentual,
     documento_referencia: perfil.documento_referencia,

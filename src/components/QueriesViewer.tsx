@@ -19,8 +19,8 @@ const QUERIES_LIST: QueryItem[] = [
     p.sigla_secretaria AS secretaria,
     p.sigla_projeto AS projeto,
     os.numero_os,
-    os.mes_referencia,
     os.ano_referencia,
+    STRING_AGG(DISTINCT a.mes_referencia, ', ') AS meses_alocados,
     os.situacao_sgc,
     os.situacao_passivo_2026,
     COUNT(a.id) AS total_profissionais,
@@ -31,7 +31,7 @@ JOIN projetos p ON p.id = os.projeto_id
 LEFT JOIN alocacoes_perfil_os a ON a.ordem_servico_id = os.id
 GROUP BY 
     p.sigla_secretaria, p.sigla_projeto, os.id, os.numero_os, 
-    os.mes_referencia, os.ano_referencia, os.situacao_sgc, os.situacao_passivo_2026
+    os.ano_referencia, os.situacao_sgc, os.situacao_passivo_2026
 ORDER BY p.sigla_secretaria, os.ano_referencia DESC, os.numero_os ASC;`
   },
   {
@@ -41,7 +41,7 @@ ORDER BY p.sigla_secretaria, os.ano_referencia DESC, os.numero_os ASC;`
     icon: <Users className="w-4 h-4 text-blue-400" />,
     sql: `SELECT 
     os.numero_os,
-    os.mes_referencia || '/' || os.ano_referencia AS competencia,
+    a.mes_referencia || '/' || os.ano_referencia AS competencia,
     p.sigla_projeto,
     a.nome_profissional,
     pc.nome_perfil,
@@ -53,7 +53,7 @@ FROM alocacoes_perfil_os a
 JOIN ordens_servico os ON os.id = a.ordem_servico_id
 JOIN projetos p ON p.id = os.projeto_id
 JOIN perfis_contratados pc ON pc.id = a.perfil_contratado_id
-ORDER BY os.numero_os, a.nome_profissional;`
+ORDER BY os.numero_os, a.mes_referencia, a.nome_profissional;`
   },
   {
     id: 'painel-sgc-passivo',
@@ -64,7 +64,6 @@ ORDER BY os.numero_os, a.nome_profissional;`
     p.sigla_secretaria,
     p.sigla_projeto,
     os.numero_os,
-    os.mes_referencia,
     os.ano_referencia,
     CASE WHEN os.alocacao_sgc THEN 'OK' ELSE 'PENDENTE' END AS alocacao_sgc_status,
     CASE WHEN os.entrega_sgc THEN 'OK' ELSE 'PENDENTE' END AS entrega_sgc_status,

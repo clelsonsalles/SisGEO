@@ -31,7 +31,6 @@ export function normalizeOrdemServico(item: any): OrdemServico {
     projeto_id: Number(item.projeto_id ?? item.projetoId ?? (item.projeto ? item.projeto.id : 0)),
     numero_os: Number(item.numero_os ?? item.numeroOs ?? 0),
     ano_referencia: Number(item.ano_referencia ?? item.anoReferencia ?? 2026),
-    mes_referencia: (item.mes_referencia ?? item.mesReferencia ?? 'JANEIRO').toUpperCase(),
     alocacao_sgc: Boolean(item.alocacao_sgc ?? item.alocacaoSgc),
     entrega_sgc: Boolean(item.entrega_sgc ?? item.entregaSgc),
     descricao_sgc: Boolean(item.descricao_sgc ?? item.descricaoSgc),
@@ -46,6 +45,7 @@ export function normalizeAlocacao(item: any, fallbackOsId?: number): AlocacaoPer
     id: Number(item.id),
     ordem_servico_id: Number(item.ordem_servico_id ?? item.ordemServicoId ?? fallbackOsId ?? 0),
     perfil_contratado_id: Number(item.perfil_contratado_id ?? item.perfilContratadoId ?? 0),
+    mes_referencia: (item.mes_referencia ?? item.mesReferencia ?? 'JANEIRO').toUpperCase(),
     nome_profissional: item.nome_profissional ?? item.nomeProfissional ?? '',
     percentual_alocacao: Number(item.percentual_alocacao ?? item.percentualAlocacao ?? 0),
     documento_referencia: item.documento_referencia ?? item.documentoReferencia ?? '',
@@ -192,7 +192,7 @@ export const apiService = {
   // 4. Alocações (N:N)
   async createAlocacao(
     osId: number,
-    data: { perfil_contratado_id: number; nome_profissional: string; percentual_alocacao: number }
+    data: { perfil_contratado_id: number; mes_referencia?: string; nome_profissional: string; percentual_alocacao: number }
   ): Promise<AlocacaoPerfilOs> {
     const res = await fetch(`/api/v1/ordens-servico/${osId}/alocacoes`, {
       method: 'POST',
@@ -200,6 +200,8 @@ export const apiService = {
       body: JSON.stringify({
         perfilContratadoId: data.perfil_contratado_id,
         perfil_contratado_id: data.perfil_contratado_id,
+        mesReferencia: data.mes_referencia,
+        mes_referencia: data.mes_referencia,
         nomeProfissional: data.nome_profissional,
         nome_profissional: data.nome_profissional,
         percentualAlocacao: data.percentual_alocacao,
@@ -215,7 +217,7 @@ export const apiService = {
   async updateAlocacao(
     osId: number,
     alocacaoId: number,
-    data: { perfil_contratado_id: number; nome_profissional: string; percentual_alocacao: number }
+    data: { perfil_contratado_id: number; mes_referencia?: string; nome_profissional: string; percentual_alocacao: number }
   ): Promise<AlocacaoPerfilOs> {
     const res = await fetch(`/api/v1/ordens-servico/${osId}/alocacoes/${alocacaoId}`, {
       method: 'PUT',
@@ -223,6 +225,8 @@ export const apiService = {
       body: JSON.stringify({
         perfilContratadoId: data.perfil_contratado_id,
         perfil_contratado_id: data.perfil_contratado_id,
+        mesReferencia: data.mes_referencia,
+        mes_referencia: data.mes_referencia,
         nomeProfissional: data.nome_profissional,
         nome_profissional: data.nome_profissional,
         percentualAlocacao: data.percentual_alocacao,

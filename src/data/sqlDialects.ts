@@ -48,7 +48,6 @@ CREATE TABLE ordens_servico (
     projeto_id BIGINT NOT NULL,
     numero_os INTEGER NOT NULL,
     ano_referencia INTEGER NOT NULL,
-    mes_referencia VARCHAR(20) NOT NULL,
     alocacao_sgc BOOLEAN NOT NULL DEFAULT FALSE,
     entrega_sgc BOOLEAN NOT NULL DEFAULT FALSE,
     descricao_sgc BOOLEAN NOT NULL DEFAULT FALSE,
@@ -67,18 +66,11 @@ CREATE TABLE ordens_servico (
     -- Restrições de Domínio e Unicidade
     CONSTRAINT chk_os_numero_positivo CHECK (numero_os > 0),
     CONSTRAINT chk_os_ano_valido CHECK (ano_referencia BETWEEN 2000 AND 2100),
-    CONSTRAINT chk_os_mes_valido CHECK (
-        mes_referencia IN (
-            'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 
-            'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 
-            'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
-        )
-    ),
-    CONSTRAINT unq_os_projeto_ano_mes UNIQUE (projeto_id, numero_os, ano_referencia)
+    CONSTRAINT unq_os_projeto_ano_num UNIQUE (projeto_id, numero_os, ano_referencia)
 );
 
 CREATE INDEX idx_os_projeto_id ON ordens_servico(projeto_id);
-CREATE INDEX idx_os_ano_mes ON ordens_servico(ano_referencia, mes_referencia);
+CREATE INDEX idx_os_ano ON ordens_servico(ano_referencia);
 
 
 -- 4. Criação da Tabela Associativa: Alocação de Perfis na Ordem de Serviço (N:N)
@@ -86,6 +78,7 @@ CREATE TABLE alocacoes_perfil_os (
     id BIGSERIAL PRIMARY KEY,
     ordem_servico_id BIGINT NOT NULL,
     perfil_contratado_id BIGINT NOT NULL,
+    mes_referencia VARCHAR(20) NOT NULL,
     nome_profissional VARCHAR(200) NOT NULL,
     percentual_alocacao INTEGER NOT NULL,
     documento_referencia VARCHAR(255) NOT NULL,
@@ -106,14 +99,23 @@ CREATE TABLE alocacoes_perfil_os (
         ON UPDATE CASCADE 
         ON DELETE RESTRICT,
 
-    -- Restrições
+    -- Restrições de Domínio, Validade e Unicidade
     CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0 AND percentual_alocacao <= 100),
     CONSTRAINT chk_custo_mensal_positivo CHECK (custo_mensal_perfil >= 0.00),
-    CONSTRAINT chk_custo_alocacao_positivo CHECK (custo_alocacao >= 0.00)
+    CONSTRAINT chk_custo_alocacao_positivo CHECK (custo_alocacao >= 0.00),
+    CONSTRAINT chk_os_mes_valido CHECK (
+        mes_referencia IN (
+            'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 
+            'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 
+            'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
+        )
+    ),
+    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
 );
 
 CREATE INDEX idx_alocacoes_os_id ON alocacoes_perfil_os(ordem_servico_id);
 CREATE INDEX idx_alocacoes_perfil_id ON alocacoes_perfil_os(perfil_contratado_id);
+CREATE INDEX idx_alocacoes_mes ON alocacoes_perfil_os(mes_referencia);
 
 
 -- ========================================================================
@@ -205,7 +207,6 @@ CREATE TABLE ordens_servico (
     projeto_id BIGINT NOT NULL,
     numero_os INT NOT NULL,
     ano_referencia INT NOT NULL,
-    mes_referencia VARCHAR(20) NOT NULL,
     alocacao_sgc BOOLEAN NOT NULL DEFAULT FALSE,
     entrega_sgc BOOLEAN NOT NULL DEFAULT FALSE,
     descricao_sgc BOOLEAN NOT NULL DEFAULT FALSE,
@@ -222,13 +223,6 @@ CREATE TABLE ordens_servico (
 
     CONSTRAINT chk_os_numero CHECK (numero_os > 0),
     CONSTRAINT chk_os_ano CHECK (ano_referencia BETWEEN 2000 AND 2100),
-    CONSTRAINT chk_os_mes CHECK (
-        mes_referencia IN (
-            'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 
-            'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 
-            'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
-        )
-    ),
     CONSTRAINT unq_os_proj_ano_num UNIQUE (projeto_id, numero_os, ano_referencia)
 ) ENGINE=InnoDB;
 
@@ -238,6 +232,7 @@ CREATE TABLE alocacoes_perfil_os (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     ordem_servico_id BIGINT NOT NULL,
     perfil_contratado_id BIGINT NOT NULL,
+    mes_referencia VARCHAR(20) NOT NULL,
     nome_profissional VARCHAR(200) NOT NULL,
     percentual_alocacao INT NOT NULL,
     documento_referencia VARCHAR(255) NOT NULL,
@@ -257,7 +252,15 @@ CREATE TABLE alocacoes_perfil_os (
         ON UPDATE CASCADE 
         ON DELETE RESTRICT,
 
-    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0 AND percentual_alocacao <= 100)
+    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0 AND percentual_alocacao <= 100),
+    CONSTRAINT chk_os_mes_valido CHECK (
+        mes_referencia IN (
+            'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 
+            'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 
+            'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
+        )
+    ),
+    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
 ) ENGINE=InnoDB;
 
 
@@ -342,7 +345,6 @@ CREATE TABLE ordens_servico (
     projeto_id BIGINT NOT NULL,
     numero_os INT NOT NULL,
     ano_referencia INT NOT NULL,
-    mes_referencia VARCHAR(20) NOT NULL,
     alocacao_sgc BIT NOT NULL CONSTRAINT df_os_aloc_sgc DEFAULT 0,
     entrega_sgc BIT NOT NULL CONSTRAINT df_os_ent_sgc DEFAULT 0,
     descricao_sgc BIT NOT NULL CONSTRAINT df_os_desc_sgc DEFAULT 0,
@@ -353,10 +355,7 @@ CREATE TABLE ordens_servico (
     CONSTRAINT fk_os_projeto FOREIGN KEY (projeto_id) REFERENCES projetos(id),
     CONSTRAINT chk_os_numero CHECK (numero_os > 0),
     CONSTRAINT chk_os_ano CHECK (ano_referencia BETWEEN 2000 AND 2100),
-    CONSTRAINT chk_os_mes CHECK (mes_referencia IN (
-        'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
-        'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
-    ))
+    CONSTRAINT unq_os_proj_ano_num UNIQUE (projeto_id, numero_os, ano_referencia)
 );
 
 -- 4. Alocação de Perfis na Ordem de Serviço (N:N)
@@ -364,6 +363,7 @@ CREATE TABLE alocacoes_perfil_os (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
     ordem_servico_id BIGINT NOT NULL,
     perfil_contratado_id BIGINT NOT NULL,
+    mes_referencia VARCHAR(20) NOT NULL,
     nome_profissional VARCHAR(200) NOT NULL,
     percentual_alocacao INT NOT NULL,
     documento_referencia VARCHAR(255) NOT NULL,
@@ -373,7 +373,12 @@ CREATE TABLE alocacoes_perfil_os (
 
     CONSTRAINT fk_alocacao_os FOREIGN KEY (ordem_servico_id) REFERENCES ordens_servico(id) ON DELETE CASCADE,
     CONSTRAINT fk_alocacao_perfil FOREIGN KEY (perfil_contratado_id) REFERENCES perfis_contratados(id),
-    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao BETWEEN 0 AND 100)
+    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao BETWEEN 0 AND 100),
+    CONSTRAINT chk_os_mes_valido CHECK (mes_referencia IN (
+        'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
+        'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
+    )),
+    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
 );
 `;
 
@@ -410,13 +415,6 @@ CREATE TABLE ordens_servico (
     projeto_id INTEGER NOT NULL,
     numero_os INTEGER NOT NULL CHECK (numero_os > 0),
     ano_referencia INTEGER NOT NULL,
-    mes_referencia TEXT NOT NULL CHECK (
-        mes_referencia IN (
-            'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 
-            'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 
-            'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
-        )
-    ),
     alocacao_sgc INTEGER NOT NULL DEFAULT 0 CHECK (alocacao_sgc IN (0, 1)),
     entrega_sgc INTEGER NOT NULL DEFAULT 0 CHECK (entrega_sgc IN (0, 1)),
     descricao_sgc INTEGER NOT NULL DEFAULT 0 CHECK (descricao_sgc IN (0, 1)),
@@ -430,6 +428,13 @@ CREATE TABLE alocacoes_perfil_os (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ordem_servico_id INTEGER NOT NULL,
     perfil_contratado_id INTEGER NOT NULL,
+    mes_referencia TEXT NOT NULL CHECK (
+        mes_referencia IN (
+            'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 
+            'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 
+            'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
+        )
+    ),
     nome_profissional TEXT NOT NULL,
     percentual_alocacao INTEGER NOT NULL CHECK (percentual_alocacao >= 0 AND percentual_alocacao <= 100),
     documento_referencia TEXT NOT NULL,
@@ -437,7 +442,8 @@ CREATE TABLE alocacoes_perfil_os (
     custo_alocacao REAL NOT NULL,
     criado_em TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     FOREIGN KEY (ordem_servico_id) REFERENCES ordens_servico (id) ON DELETE CASCADE,
-    FOREIGN KEY (perfil_contratado_id) REFERENCES perfis_contratados (id) ON DELETE RESTRICT
+    FOREIGN KEY (perfil_contratado_id) REFERENCES perfis_contratados (id) ON DELETE RESTRICT,
+    UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
 );
 
 -- Trigger SQLite para preenchimento e cálculo automático
@@ -479,24 +485,24 @@ VALUES
 
 -- 3. Inserção de Ordens de Serviço (1:N)
 INSERT INTO ordens_servico 
-(projeto_id, numero_os, ano_referencia, mes_referencia, alocacao_sgc, entrega_sgc, descricao_sgc, situacao_sgc, situacao_passivo_2026)
+(projeto_id, numero_os, ano_referencia, alocacao_sgc, entrega_sgc, descricao_sgc, situacao_sgc, situacao_passivo_2026)
 VALUES
-(1, 101, 2026, 'JANEIRO', TRUE, TRUE, TRUE, 'Atestada pelo Fiscal', 'Liquidado'),
-(1, 102, 2026, 'FEVEREIRO', TRUE, TRUE, FALSE, 'Em Execução', 'A Empenhar'),
-(2, 201, 2026, 'JANEIRO', TRUE, FALSE, TRUE, 'Em Validação SGC', 'Passivo Reconhecido'),
-(3, 301, 2026, 'MARÇO', FALSE, FALSE, FALSE, 'Planejada', 'Sem Passivo');
+(1, 101, 2026, TRUE, TRUE, TRUE, 'Atestada pelo Fiscal', 'Liquidado'),
+(1, 102, 2026, TRUE, TRUE, FALSE, 'Em Execução', 'A Empenhar'),
+(2, 201, 2026, TRUE, FALSE, TRUE, 'Em Validação SGC', 'Passivo Reconhecido'),
+(3, 301, 2026, FALSE, FALSE, FALSE, 'Planejada', 'Sem Passivo');
 
 -- 4. Inserção de Alocações (N:N com snapshot e regra de cálculo acionada via trigger ou manual)
--- Observação: com o Trigger ativo, basta informar ordem_servico_id, perfil_contratado_id, nome_profissional e percentual_alocacao!
+-- Observação: com o Trigger ativo, basta informar ordem_servico_id, perfil_contratado_id, mes_referencia, nome_profissional e percentual_alocacao!
 INSERT INTO alocacoes_perfil_os 
-(ordem_servico_id, perfil_contratado_id, nome_profissional, percentual_alocacao, documento_referencia, custo_mensal_perfil, custo_alocacao)
+(ordem_servico_id, perfil_contratado_id, mes_referencia, nome_profissional, percentual_alocacao, documento_referencia, custo_mensal_perfil, custo_alocacao)
 VALUES
-(1, 1, 'Carlos Eduardo Mendes', 100, 'Contrato 45/2024 - Lote 1', 18500.00, 18500.00),
-(1, 2, 'Mariana Vasconcelos', 100, 'Contrato 45/2024 - Lote 1', 14200.00, 14200.00),
-(1, 3, 'Rodrigo Silveira', 50, 'Contrato 45/2024 - Lote 1', 9800.00, 4900.00),
-(2, 2, 'Mariana Vasconcelos', 50, 'Contrato 45/2024 - Lote 1', 14200.00, 7100.00),
-(2, 3, 'Lucas Pinheiro', 100, 'Contrato 45/2024 - Lote 1', 9800.00, 9800.00),
-(3, 5, 'Ana Beatriz Costa', 100, 'Contrato 45/2024 - Lote 2', 15000.00, 15000.00);
+(1, 1, 'JANEIRO', 'Carlos Eduardo Mendes', 100, 'Contrato 45/2024 - Lote 1', 18500.00, 18500.00),
+(1, 2, 'JANEIRO', 'Mariana Vasconcelos', 100, 'Contrato 45/2024 - Lote 1', 14200.00, 14200.00),
+(1, 3, 'JANEIRO', 'Rodrigo Silveira', 50, 'Contrato 45/2024 - Lote 1', 9800.00, 4900.00),
+(2, 2, 'FEVEREIRO', 'Mariana Vasconcelos', 50, 'Contrato 45/2024 - Lote 1', 14200.00, 7100.00),
+(2, 3, 'FEVEREIRO', 'Lucas Pinheiro', 100, 'Contrato 45/2024 - Lote 1', 9800.00, 9800.00),
+(3, 5, 'MARÇO', 'Ana Beatriz Costa', 100, 'Contrato 45/2024 - Lote 2', 15000.00, 15000.00);
 `;
 
 export const QUERIES_SQL = `-- ========================================================================
@@ -508,8 +514,8 @@ SELECT
     p.sigla_secretaria AS secretaria,
     p.sigla_projeto AS projeto,
     os.numero_os,
-    os.mes_referencia,
     os.ano_referencia,
+    STRING_AGG(DISTINCT a.mes_referencia, ', ') AS meses_alocados,
     os.situacao_sgc,
     os.situacao_passivo_2026,
     COUNT(a.id) AS total_profissionais_alocados,
@@ -520,14 +526,14 @@ JOIN projetos p ON p.id = os.projeto_id
 LEFT JOIN alocacoes_perfil_os a ON a.ordem_servico_id = os.id
 GROUP BY 
     p.sigla_secretaria, p.sigla_projeto, os.id, os.numero_os, 
-    os.mes_referencia, os.ano_referencia, os.situacao_sgc, os.situacao_passivo_2026
+    os.ano_referencia, os.situacao_sgc, os.situacao_passivo_2026
 ORDER BY p.sigla_secretaria, os.ano_referencia DESC, os.numero_os ASC;
 
 
 -- 2. Detalhamento de Equipe e Histórico Contratual por Ordem de Serviço
 SELECT 
     os.numero_os,
-    os.mes_referencia || '/' || os.ano_referencia AS periodo,
+    a.mes_referencia || '/' || os.ano_referencia AS periodo,
     p.sigla_projeto,
     a.nome_profissional,
     pc.nome_perfil,
@@ -539,7 +545,7 @@ FROM alocacoes_perfil_os a
 JOIN ordens_servico os ON os.id = a.ordem_servico_id
 JOIN projetos p ON p.id = os.projeto_id
 JOIN perfis_contratados pc ON pc.id = a.perfil_contratado_id
-ORDER BY os.numero_os, a.nome_profissional;
+ORDER BY os.numero_os, a.mes_referencia, a.nome_profissional;
 
 
 -- 3. Acompanhamento de Pendências no SGC e Passivo 2026
@@ -547,7 +553,6 @@ SELECT
     p.sigla_secretaria,
     p.nome_projeto,
     os.numero_os,
-    os.mes_referencia,
     os.ano_referencia,
     CASE WHEN os.alocacao_sgc THEN 'OK' ELSE 'PENDENTE' END AS status_alocacao_sgc,
     CASE WHEN os.entrega_sgc THEN 'OK' ELSE 'PENDENTE' END AS status_entrega_sgc,

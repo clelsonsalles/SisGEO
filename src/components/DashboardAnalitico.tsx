@@ -95,7 +95,7 @@ export const DashboardAnalitico: React.FC<DashboardAnaliticoProps> = ({ onNaviga
         ordem_servico_id: aloc.ordem_servico_id,
         numero_os: os ? os.numero_os : 0,
         ano_referencia: os ? os.ano_referencia : 2026,
-        mes_referencia: os ? os.mes_referencia : 'JANEIRO',
+        mes_referencia: aloc.mes_referencia || 'JANEIRO',
         projeto_id: os ? os.projeto_id : 0,
         nome_projeto: proj ? proj.nome_projeto : 'Não vinculado',
         sigla_projeto: proj ? proj.sigla_projeto : 'N/D',

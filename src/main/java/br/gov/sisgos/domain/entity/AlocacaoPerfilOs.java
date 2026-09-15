@@ -7,7 +7,13 @@ import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "alocacoes_perfil_os")
+@Table(
+    name = "alocacoes_perfil_os",
+    uniqueConstraints = @UniqueConstraint(
+        name = "unq_alocacao_os_perfil_mes",
+        columnNames = {"ordem_servico_id", "perfil_contratado_id", "mes_referencia"}
+    )
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,6 +32,9 @@ public class AlocacaoPerfilOs {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "perfil_contratado_id", nullable = false)
     private PerfilContratado perfilContratado;
+
+    @Column(name = "mes_referencia", length = 20, nullable = false)
+    private String mesReferencia;
 
     @Column(name = "nome_profissional", length = 200, nullable = false)
     private String nomeProfissional;

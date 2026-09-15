@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSisgos } from '../context/SisgosContext';
-import { OrdemServico, AlocacaoPerfilOs } from '../types/models';
+import { OrdemServico, AlocacaoPerfilOs, MESES_REFERENCIA, MesReferencia } from '../types/models';
 import { formatCurrency, formatPercent } from '../utils/formatters';
 
 interface AlocacaoModalProps {
@@ -31,6 +31,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
 
   // Form fields
   const [selectedPerfilId, setSelectedPerfilId] = useState<number | ''>('');
+  const [mesReferencia, setMesReferencia] = useState<MesReferencia>('JANEIRO');
   const [nomeProfissional, setNomeProfissional] = useState<string>('');
   const [percentualAlocacao, setPercentualAlocacao] = useState<number>(100);
   const [formError, setFormError] = useState<string>('');
@@ -49,6 +50,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
     setIsEditing(false);
     setEditingId(null);
     setSelectedPerfilId(perfis.length > 0 ? perfis[0].id : '');
+    setMesReferencia('JANEIRO');
     setNomeProfissional('');
     setPercentualAlocacao(100);
     setFormError('');
@@ -80,6 +82,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
   const handleStartEdit = (item: AlocacaoPerfilOs) => {
     setEditingId(item.id);
     setSelectedPerfilId(item.perfil_contratado_id);
+    setMesReferencia(item.mes_referencia);
     setNomeProfissional(item.nome_profissional);
     setPercentualAlocacao(item.percentual_alocacao);
     setFormError('');
@@ -96,6 +99,10 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
       setFormError('Informe o nome do profissional.');
       return;
     }
+    if (!mesReferencia) {
+      setFormError('Selecione o mês de referência.');
+      return;
+    }
     if (percentualAlocacao <= 0 || percentualAlocacao > 100) {
       setFormError('O percentual de alocação deve estar entre 1% e 100%.');
       return;
@@ -105,6 +112,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
       if (editingId) {
         updateAlocacao(editingId, {
           perfil_contratado_id: Number(selectedPerfilId),
+          mes_referencia: mesReferencia,
           nome_profissional: nomeProfissional.trim(),
           percentual_alocacao: percentualAlocacao,
         });
@@ -112,6 +120,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
         addAlocacao({
           ordem_servico_id: ordemServico.id,
           perfil_contratado_id: Number(selectedPerfilId),
+          mes_referencia: mesReferencia,
           nome_profissional: nomeProfissional.trim(),
           percentual_alocacao: percentualAlocacao,
         });
@@ -156,7 +165,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                   Alocação de Perfis na Ordem de Serviço
                 </h5>
                 <small className="opacity-90">
-                  Gestão da Tabela Associativa: <code>alocacoes_perfil_os</code> (Relação N:N)
+                  Gestão da Tabela Associativa: <code>alocacoes_perfil_os</code> (Relação N:N com Mês de Referência)
                 </small>
               </div>
             </div>
@@ -172,18 +181,18 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
           <div className="bg-light border-bottom px-4 py-3">
             <div className="row g-3 align-items-center">
               <div className="col-md-3">
-                <span className="text-muted small d-block">Número da OS / Ano</span>
+                <span className="text-muted small d-block">Número da OS / Exercício</span>
                 <span className="fw-bold fs-6 text-dark">
                   OS #{ordemServico.numero_os} / {ordemServico.ano_referencia}
                 </span>
               </div>
-              <div className="col-md-2">
-                <span className="text-muted small d-block">Mês de Referência</span>
+              <div className="col-md-3">
+                <span className="text-muted small d-block">Situação SGC</span>
                 <span className="badge bg-secondary px-2 py-1 fs-7">
-                  {ordemServico.mes_referencia}
+                  {ordemServico.situacao_sgc}
                 </span>
               </div>
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <span className="text-muted small d-block">Projeto Vinculado</span>
                 <span className="fw-semibold text-dark text-truncate d-block">
                   {projeto?.nome_projeto || 'Projeto não identificado'}
@@ -230,7 +239,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                   <form onSubmit={handleSave}>
                     <div className="row g-3">
                       {/* Perfil Contratado Select */}
-                      <div className="col-md-6">
+                      <div className="col-md-5">
                         <label className="form-label fw-semibold">
                           Perfil Contratado <span className="text-danger">*</span>
                         </label>
@@ -248,12 +257,34 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                           ))}
                         </select>
                         <div className="form-text small">
-                          Ao selecionar, o custo mensal e o documento de referência são copiados automaticamente.
+                          Custo mensal e documento de referência copiados automaticamente.
+                        </div>
+                      </div>
+
+                      {/* Mês de Referência da Alocação */}
+                      <div className="col-md-3">
+                        <label className="form-label fw-semibold">
+                          Mês de Referência <span className="text-danger">*</span>
+                        </label>
+                        <select
+                          className="form-select"
+                          value={mesReferencia}
+                          onChange={(e) => setMesReferencia(e.target.value as MesReferencia)}
+                          required
+                        >
+                          {MESES_REFERENCIA.map((mes) => (
+                            <option key={mes} value={mes}>
+                              {mes}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="form-text small">
+                          Restrição UNIQUE (OS + Perfil + Mês)
                         </div>
                       </div>
 
                       {/* Nome do Profissional com Autocomplete e inserção livre */}
-                      <div className="col-md-6">
+                      <div className="col-md-4">
                         <label className="form-label fw-semibold">
                           Nome do Profissional <span className="text-danger">*</span>
                         </label>
@@ -265,20 +296,19 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                             type="text"
                             list="profissionais-list"
                             className="form-control"
-                            placeholder="Digite o nome ou selecione um existente..."
+                            placeholder="Nome do profissional..."
                             value={nomeProfissional}
                             onChange={(e) => setNomeProfissional(e.target.value)}
                             required
                           />
                         </div>
-                        {/* Datalist com nomes distintos já incluídos em qualquer outra alocação */}
                         <datalist id="profissionais-list">
                           {nomesDistintos.map((nome, index) => (
                             <option key={index} value={nome} />
                           ))}
                         </datalist>
                         <div className="form-text small">
-                          Exibe profissionais já registrados ({nomesDistintos.length} distintos cadastrados). Digite livremente para cadastrar um novo.
+                          {nomesDistintos.length} profissionais cadastrados.
                         </div>
                       </div>
 
@@ -326,10 +356,10 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                       <div className="d-flex align-items-center justify-content-between border-bottom pb-2 mb-2">
                         <div className="d-flex align-items-center text-primary fw-semibold small">
                           <i className="bi bi-cpu-fill me-2"></i>
-                          <span>Simulador da Regra de Negócio & Trigger de Banco de Dados</span>
+                          <span>Simulador da Regra de Negócio & Constraints (CHECK & UNIQUE)</span>
                         </div>
                         <span className="badge bg-success-subtle text-success-emphasis border border-success-subtle">
-                          Calculado em Tempo Real
+                          Mês: {mesReferencia}
                         </span>
                       </div>
                       <div className="row g-3 text-center">
@@ -406,7 +436,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                 <i className="bi bi-people text-muted fs-1 d-block mb-2"></i>
                 <h6 className="fw-semibold text-secondary">Nenhum perfil alocado nesta Ordem de Serviço</h6>
                 <p className="text-muted small mb-3">
-                  Clique no botão acima para associar os perfis contratados e profissionais a esta OS.
+                  Clique no botão acima para associar os perfis contratados e profissionais a esta OS com seu respectivo mês de referência.
                 </p>
                 <button
                   type="button"
@@ -422,12 +452,13 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                 <table className="table table-hover align-middle mb-0">
                   <thead className="table-light">
                     <tr>
-                      <th style={{ width: '22%' }}>Profissional</th>
-                      <th style={{ width: '22%' }}>Perfil Contratado</th>
-                      <th className="text-center" style={{ width: '12%' }}>% Alocação</th>
-                      <th style={{ width: '18%' }}>Doc. Referência (Cópia)</th>
-                      <th className="text-end" style={{ width: '13%' }}>Custo Mensal (Cópia)</th>
-                      <th className="text-end" style={{ width: '13%' }}>Custo Alocação (Calc.)</th>
+                      <th style={{ width: '20%' }}>Profissional</th>
+                      <th style={{ width: '20%' }}>Perfil Contratado</th>
+                      <th className="text-center" style={{ width: '13%' }}>Mês Referência</th>
+                      <th className="text-center" style={{ width: '10%' }}>% Alocação</th>
+                      <th style={{ width: '14%' }}>Doc. Referência (Cópia)</th>
+                      <th className="text-end" style={{ width: '11%' }}>Custo Mensal (Cópia)</th>
+                      <th className="text-end" style={{ width: '12%' }}>Custo Alocação (Calc.)</th>
                       <th className="text-center" style={{ width: '80px' }}>Ações</th>
                     </tr>
                   </thead>
@@ -458,12 +489,17 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                             </small>
                           </td>
                           <td className="text-center">
+                            <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 fw-semibold">
+                              {item.mes_referencia}
+                            </span>
+                          </td>
+                          <td className="text-center">
                             <span className="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-1">
                               {formatPercent(item.percentual_alocacao)}
                             </span>
                           </td>
                           <td>
-                            <span className="badge bg-light text-dark border text-truncate d-inline-block" style={{ maxWidth: 180 }}>
+                            <span className="badge bg-light text-dark border text-truncate d-inline-block" style={{ maxWidth: 150 }}>
                               {item.documento_referencia}
                             </span>
                           </td>
@@ -499,7 +535,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                   </tbody>
                   <tfoot className="table-group-divider bg-light">
                     <tr>
-                      <td colSpan={5} className="text-end fw-bold text-dark py-3">
+                      <td colSpan={6} className="text-end fw-bold text-dark py-3">
                         Valor Total da Ordem de Serviço (Soma das Alocações):
                       </td>
                       <td className="text-end fw-bold text-success fs-6 py-3 font-monospace">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSisgos } from '../context/SisgosContext';
-import { OrdemServico, MESES_REFERENCIA, MesReferencia } from '../types/models';
+import { OrdemServico } from '../types/models';
 
 interface OrdemServicoModalProps {
   isOpen: boolean;
@@ -18,7 +18,6 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
   const [projetoId, setProjetoId] = useState<number | ''>('');
   const [numeroOs, setNumeroOs] = useState<number | ''>('');
   const [anoReferencia, setAnoReferencia] = useState<number>(2026);
-  const [mesReferencia, setMesReferencia] = useState<MesReferencia>('JANEIRO');
   const [alocacaoSgc, setAlocacaoSgc] = useState<boolean>(false);
   const [entregaSgc, setEntregaSgc] = useState<boolean>(false);
   const [descricaoSgc, setDescricaoSgc] = useState<boolean>(false);
@@ -31,7 +30,6 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
       setProjetoId(editingOs.projeto_id);
       setNumeroOs(editingOs.numero_os);
       setAnoReferencia(editingOs.ano_referencia);
-      setMesReferencia(editingOs.mes_referencia);
       setAlocacaoSgc(editingOs.alocacao_sgc);
       setEntregaSgc(editingOs.entrega_sgc);
       setDescricaoSgc(editingOs.descricao_sgc);
@@ -41,7 +39,6 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
       setProjetoId(projetos.length > 0 ? projetos[0].id : '');
       setNumeroOs('');
       setAnoReferencia(2026);
-      setMesReferencia('JANEIRO');
       setAlocacaoSgc(false);
       setEntregaSgc(false);
       setDescricaoSgc(false);
@@ -74,7 +71,6 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
           projeto_id: Number(projetoId),
           numero_os: Number(numeroOs),
           ano_referencia: Number(anoReferencia),
-          mes_referencia: mesReferencia,
           alocacao_sgc: alocacaoSgc,
           entrega_sgc: entregaSgc,
           descricao_sgc: descricaoSgc,
@@ -86,7 +82,6 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
           projeto_id: Number(projetoId),
           numero_os: Number(numeroOs),
           ano_referencia: Number(anoReferencia),
-          mes_referencia: mesReferencia,
           alocacao_sgc: alocacaoSgc,
           entrega_sgc: entregaSgc,
           descricao_sgc: descricaoSgc,
@@ -157,7 +152,7 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
                 </div>
 
                 {/* Número da OS */}
-                <div className="col-md-4">
+                <div className="col-md-6">
                   <label className="form-label fw-semibold">
                     Número da OS <span className="text-danger">*</span>
                   </label>
@@ -173,7 +168,7 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
                 </div>
 
                 {/* Ano de Referência */}
-                <div className="col-md-4">
+                <div className="col-md-6">
                   <label className="form-label fw-semibold">
                     Ano de Referência <span className="text-danger">*</span>
                   </label>
@@ -186,25 +181,6 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
                     onChange={(e) => setAnoReferencia(Number(e.target.value))}
                     required
                   />
-                </div>
-
-                {/* Mês de Referência */}
-                <div className="col-md-4">
-                  <label className="form-label fw-semibold">
-                    Mês de Referência <span className="text-danger">*</span>
-                  </label>
-                  <select
-                    className="form-select"
-                    value={mesReferencia}
-                    onChange={(e) => setMesReferencia(e.target.value as MesReferencia)}
-                    required
-                  >
-                    {MESES_REFERENCIA.map((mes) => (
-                      <option key={mes} value={mes}>
-                        {mes}
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 {/* Indicadores SGC (Checkboxes) */}

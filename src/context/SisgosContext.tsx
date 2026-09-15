@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Projeto, PerfilContratado, OrdemServico, AlocacaoPerfilOs } from '../types/models';
+import { Projeto, PerfilContratado, OrdemServico, AlocacaoPerfilOs, MesReferencia } from '../types/models';
 import { INITIAL_PROJETOS, INITIAL_PERFIS, INITIAL_ORDENS_SERVICO, INITIAL_ALOCACOES } from '../data/initialData';
 import { apiService } from '../services/api';
 
@@ -34,6 +34,7 @@ interface SisgosContextType {
   addAlocacao: (params: {
     ordem_servico_id: number;
     perfil_contratado_id: number;
+    mes_referencia: MesReferencia;
     nome_profissional: string;
     percentual_alocacao: number;
   }) => AlocacaoPerfilOs;
@@ -41,6 +42,7 @@ interface SisgosContextType {
     id: number,
     params: {
       perfil_contratado_id: number;
+      mes_referencia: MesReferencia;
       nome_profissional: string;
       percentual_alocacao: number;
     }
@@ -57,11 +59,11 @@ interface SisgosContextType {
 const SisgosContext = createContext<SisgosContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  PROJETOS: 'sisgos_projetos_v1',
-  PERFIS: 'sisgos_perfis_v1',
-  ORDENS: 'sisgos_ordens_v1',
-  ALOCACOES: 'sisgos_alocacoes_v1',
-  LAST_SYNC: 'sisgos_last_sync_v1',
+  PROJETOS: 'sisgos_projetos_v2',
+  PERFIS: 'sisgos_perfis_v2',
+  ORDENS: 'sisgos_ordens_v2',
+  ALOCACOES: 'sisgos_alocacoes_v2',
+  LAST_SYNC: 'sisgos_last_sync_v2',
 };
 
 export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -356,12 +358,23 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const addAlocacao = (params: {
     ordem_servico_id: number;
     perfil_contratado_id: number;
+    mes_referencia: MesReferencia;
     nome_profissional: string;
     percentual_alocacao: number;
   }): AlocacaoPerfilOs => {
     const perfil = perfis.find(p => p.id === params.perfil_contratado_id);
     if (!perfil) {
       throw new Error(`Perfil contratado com ID ${params.perfil_contratado_id} não encontrado.`);
+    }
+
+    // Validação de Unicidade: CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
+    const isDuplicate = alocacoes.some(
+      a => a.ordem_servico_id === params.ordem_servico_id &&
+           a.perfil_contratado_id === params.perfil_contratado_id &&
+           a.mes_referencia === params.mes_referencia
+    );
+    if (isDuplicate) {
+      throw new Error(`Violação da restrição de unicidade (CONSTRAINT UNIQUE unq_alocacao_os_perfil_mes): Já existe uma alocação para o perfil '${perfil.nome_perfil}' no mês ${params.mes_referencia} nesta Ordem de Serviço.`);
     }
 
     const custoMensal = perfil.custo_mensal_perfil;
@@ -375,6 +388,7 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       id: tempId,
       ordem_servico_id: params.ordem_servico_id,
       perfil_contratado_id: params.perfil_contratado_id,
+      mes_referencia: params.mes_referencia,
       nome_profissional: params.nome_profissional.trim(),
       percentual_alocacao: params.percentual_alocacao,
       documento_referencia: docRef,
@@ -400,6 +414,7 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     id: number,
     params: {
       perfil_contratado_id: number;
+      mes_referencia: MesReferencia;
       nome_profissional: string;
       percentual_alocacao: number;
     }
@@ -407,18 +422,30 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const perfil = perfis.find(p => p.id === params.perfil_contratado_id);
     if (!perfil) return;
 
+    const targetAloc = alocacoes.find(a => a.id === id);
+    const osId = targetAloc ? targetAloc.ordem_servico_id : 0;
+
+    // Validação de Unicidade: CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE
+    const isDuplicate = alocacoes.some(
+      a => a.id !== id &&
+           a.ordem_servico_id === osId &&
+           a.perfil_contratado_id === params.perfil_contratado_id &&
+           a.mes_referencia === params.mes_referencia
+    );
+    if (isDuplicate) {
+      throw new Error(`Violação da restrição de unicidade (CONSTRAINT UNIQUE unq_alocacao_os_perfil_mes): Já existe outra alocação para o perfil '${perfil.nome_perfil}' no mês ${params.mes_referencia} nesta Ordem de Serviço.`);
+    }
+
     const custoMensal = perfil.custo_mensal_perfil;
     const docRef = perfil.documento_referencia;
     const custoAlocacao = (params.percentual_alocacao * custoMensal) / 100;
-
-    const targetAloc = alocacoes.find(a => a.id === id);
-    const osId = targetAloc ? targetAloc.ordem_servico_id : 0;
 
     setAlocacoes(prev => prev.map(a => {
       if (a.id === id) {
         return {
           ...a,
           perfil_contratado_id: params.perfil_contratado_id,
+          mes_referencia: params.mes_referencia,
           nome_profissional: params.nome_profissional.trim(),
           percentual_alocacao: params.percentual_alocacao,
           documento_referencia: docRef,

@@ -53,7 +53,6 @@ export interface OrdemServico {
   projeto_id: number;
   numero_os: number;
   ano_referencia: number;
-  mes_referencia: MesReferencia;
   alocacao_sgc: boolean;
   entrega_sgc: boolean;
   descricao_sgc: boolean;
@@ -66,6 +65,7 @@ export interface AlocacaoPerfilOs {
   id: number;
   ordem_servico_id: number;
   perfil_contratado_id: number;
+  mes_referencia: MesReferencia;
   nome_profissional: string;
   percentual_alocacao: number;
   documento_referencia: string;

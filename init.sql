@@ -54,7 +54,6 @@ CREATE TABLE IF NOT EXISTS ordens_servico (
     projeto_id BIGINT NOT NULL,
     numero_os INTEGER NOT NULL,
     ano_referencia INTEGER NOT NULL,
-    mes_referencia VARCHAR(20) NOT NULL,
     alocacao_sgc BOOLEAN NOT NULL DEFAULT FALSE,
     entrega_sgc BOOLEAN NOT NULL DEFAULT FALSE,
     descricao_sgc BOOLEAN NOT NULL DEFAULT FALSE,
@@ -71,18 +70,11 @@ CREATE TABLE IF NOT EXISTS ordens_servico (
 
     CONSTRAINT chk_os_numero_positivo CHECK (numero_os > 0),
     CONSTRAINT chk_os_ano_valido CHECK (ano_referencia BETWEEN 2000 AND 2100),
-    CONSTRAINT chk_os_mes_valido CHECK (
-        mes_referencia IN (
-            'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 
-            'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 
-            'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
-        )
-    ),
-    CONSTRAINT unq_os_projeto_ano_mes UNIQUE (projeto_id, numero_os, ano_referencia)
+    CONSTRAINT unq_os_projeto_ano_numero UNIQUE (projeto_id, numero_os, ano_referencia)
 );
 
 CREATE INDEX IF NOT EXISTS idx_os_projeto_id ON ordens_servico(projeto_id);
-CREATE INDEX IF NOT EXISTS idx_os_ano_mes ON ordens_servico(ano_referencia, mes_referencia);
+CREATE INDEX IF NOT EXISTS idx_os_ano ON ordens_servico(ano_referencia);
 
 -- ------------------------------------------------------------------------
 -- 4. Tabela Associativa: Alocações de Perfis na OS (N:N)
@@ -91,6 +83,7 @@ CREATE TABLE IF NOT EXISTS alocacoes_perfil_os (
     id BIGSERIAL PRIMARY KEY,
     ordem_servico_id BIGINT NOT NULL,
     perfil_contratado_id BIGINT NOT NULL,
+    mes_referencia VARCHAR(20) NOT NULL,
     nome_profissional VARCHAR(200) NOT NULL,
     percentual_alocacao INTEGER NOT NULL,
     documento_referencia VARCHAR(255) NOT NULL,
@@ -112,11 +105,20 @@ CREATE TABLE IF NOT EXISTS alocacoes_perfil_os (
 
     CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0 AND percentual_alocacao <= 100),
     CONSTRAINT chk_custo_mensal_positivo CHECK (custo_mensal_perfil >= 0.00),
-    CONSTRAINT chk_custo_alocacao_positivo CHECK (custo_alocacao >= 0.00)
+    CONSTRAINT chk_custo_alocacao_positivo CHECK (custo_alocacao >= 0.00),
+    CONSTRAINT chk_os_mes_valido CHECK (
+        mes_referencia IN (
+            'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 
+            'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 
+            'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
+        )
+    ),
+    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
 );
 
 CREATE INDEX IF NOT EXISTS idx_alocacoes_os_id ON alocacoes_perfil_os(ordem_servico_id);
 CREATE INDEX IF NOT EXISTS idx_alocacoes_perfil_id ON alocacoes_perfil_os(perfil_contratado_id);
+CREATE INDEX IF NOT EXISTS idx_alocacoes_os_perfil_mes ON alocacoes_perfil_os(ordem_servico_id, perfil_contratado_id, mes_referencia);
 
 -- ------------------------------------------------------------------------
 -- 5. Trigger PL/pgSQL: Automação da Regra de Negócio de Alocação
@@ -178,20 +180,20 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 INSERT INTO ordens_servico 
-(projeto_id, numero_os, ano_referencia, mes_referencia, alocacao_sgc, entrega_sgc, descricao_sgc, situacao_sgc, situacao_passivo_2026)
+(projeto_id, numero_os, ano_referencia, alocacao_sgc, entrega_sgc, descricao_sgc, situacao_sgc, situacao_passivo_2026)
 VALUES
-(1, 101, 2026, 'JANEIRO', TRUE, TRUE, TRUE, 'Atestada pelo Fiscal', 'Liquidado'),
-(1, 102, 2026, 'FEVEREIRO', TRUE, TRUE, FALSE, 'Em Execução', 'A Empenhar'),
-(2, 201, 2026, 'JANEIRO', TRUE, FALSE, TRUE, 'Em Validação SGC', 'Passivo Reconhecido'),
-(3, 301, 2026, 'MARÇO', FALSE, FALSE, FALSE, 'Planejada', 'Sem Passivo')
+(1, 101, 2026, TRUE, TRUE, TRUE, 'Atestada pelo Fiscal', 'Liquidado'),
+(1, 102, 2026, TRUE, TRUE, FALSE, 'Em Execução', 'A Empenhar'),
+(2, 201, 2026, TRUE, FALSE, TRUE, 'Em Validação SGC', 'Passivo Reconhecido'),
+(3, 301, 2026, FALSE, FALSE, FALSE, 'Planejada', 'Sem Passivo')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO alocacoes_perfil_os 
-(ordem_servico_id, perfil_contratado_id, nome_profissional, percentual_alocacao, documento_referencia, custo_mensal_perfil, custo_alocacao)
+(ordem_servico_id, perfil_contratado_id, mes_referencia, nome_profissional, percentual_alocacao, documento_referencia, custo_mensal_perfil, custo_alocacao)
 VALUES
-(1, 1, 'Carlos Eduardo Silveira', 50, 'Contrato 45/2024 - Lote 1', 18500.00, 9250.00),
-(1, 2, 'Mariana Souza Ribeiro', 45, 'Contrato 45/2024 - Lote 1', 14200.00, 6390.00),
-(2, 2, 'Mariana Souza Ribeiro', 50, 'Contrato 45/2024 - Lote 1', 14200.00, 7100.00),
-(2, 3, 'Lucas Pinheiro Castro', 100, 'Contrato 45/2024 - Lote 1', 9800.00, 9800.00),
-(3, 5, 'Ana Beatriz Medeiros', 100, 'Contrato 45/2024 - Lote 2', 15000.00, 15000.00)
+(1, 1, 'JANEIRO', 'Carlos Eduardo Silveira', 50, 'Contrato 45/2024 - Lote 1', 18500.00, 9250.00),
+(1, 2, 'JANEIRO', 'Mariana Souza Ribeiro', 45, 'Contrato 45/2024 - Lote 1', 14200.00, 6390.00),
+(2, 2, 'FEVEREIRO', 'Mariana Souza Ribeiro', 50, 'Contrato 45/2024 - Lote 1', 14200.00, 7100.00),
+(2, 3, 'FEVEREIRO', 'Lucas Pinheiro Castro', 100, 'Contrato 45/2024 - Lote 1', 9800.00, 9800.00),
+(3, 5, 'JANEIRO', 'Ana Beatriz Medeiros', 100, 'Contrato 45/2024 - Lote 2', 15000.00, 15000.00)
 ON CONFLICT DO NOTHING;

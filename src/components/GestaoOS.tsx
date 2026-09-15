@@ -43,17 +43,20 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
   const filteredOrdens = useMemo(() => {
     return ordensServico.filter((os) => {
       const projeto = projetos.find((p) => p.id === os.projeto_id);
+      const osAlocs = alocacoes.filter((a) => a.ordem_servico_id === os.id);
+      const mesesAloc = osAlocs.map((a) => a.mes_referencia.toLowerCase());
 
       // Search match
+      const searchLower = searchQuery.toLowerCase();
       const searchMatch =
         searchQuery.trim() === '' ||
         String(os.numero_os).includes(searchQuery) ||
-        os.mes_referencia.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        os.situacao_sgc.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        os.situacao_passivo_2026.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        projeto?.nome_projeto.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        projeto?.sigla_projeto.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        projeto?.sigla_secretaria.toLowerCase().includes(searchQuery.toLowerCase());
+        mesesAloc.some((m) => m.includes(searchLower)) ||
+        os.situacao_sgc.toLowerCase().includes(searchLower) ||
+        os.situacao_passivo_2026.toLowerCase().includes(searchLower) ||
+        projeto?.nome_projeto.toLowerCase().includes(searchLower) ||
+        projeto?.sigla_projeto.toLowerCase().includes(searchLower) ||
+        projeto?.sigla_secretaria.toLowerCase().includes(searchLower);
 
       // Filter project
       const projetoMatch =
@@ -63,12 +66,14 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
       const anoMatch =
         filtroAno === 'TODOS' || String(os.ano_referencia) === filtroAno;
 
-      // Filter mes
-      const mesMatch = filtroMes === 'TODOS' || os.mes_referencia === filtroMes;
+      // Filter mes (via alocações da OS)
+      const mesMatch =
+        filtroMes === 'TODOS' ||
+        osAlocs.some((a) => a.mes_referencia === filtroMes);
 
       return searchMatch && projetoMatch && anoMatch && mesMatch;
     });
-  }, [ordensServico, projetos, searchQuery, filtroProjeto, filtroAno, filtroMes]);
+  }, [ordensServico, alocacoes, projetos, searchQuery, filtroProjeto, filtroAno, filtroMes]);
 
   // Overall calculations
   const totalGeralCalculado = useMemo(() => {
@@ -473,6 +478,7 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
                   const projeto = projetos.find((p) => p.id === os.projeto_id);
                   const osAlocacoes = alocacoes.filter((a) => a.ordem_servico_id === os.id);
                   const valorTotalCalculado = getCalculoValorTotalOS(os.id);
+                  const mesesAlocados = Array.from(new Set(osAlocacoes.map((a) => a.mes_referencia)));
 
                   return (
                     <tr key={os.id}>
@@ -484,8 +490,15 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
                           </span>
                         </div>
                         <div className="text-muted small mt-1">
-                          <strong className="text-primary">{os.mes_referencia}</strong> / {os.ano_referencia}
+                          Ano: <strong className="text-dark">{os.ano_referencia}</strong>
                         </div>
+                        {mesesAlocados.length > 0 && (
+                          <div className="mt-1">
+                            <span className="badge bg-primary-subtle text-primary border border-primary-subtle" style={{ fontSize: '10px' }}>
+                              {mesesAlocados.join(', ')}
+                            </span>
+                          </div>
+                        )}
                       </td>
 
                       {/* Projeto */}

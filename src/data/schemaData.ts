@@ -187,14 +187,6 @@ export const TABLES_METADATA: TableDefinition[] = [
         description: 'Ano de vigência ou execução da OS (ex: 2025, 2026).'
       },
       {
-        name: 'mes_referencia',
-        originalName: 'Mês de referência',
-        type: 'VARCHAR(20)',
-        nullable: false,
-        checkConstraint: "mes_referencia IN ('JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO')",
-        description: 'Mês de referência da OS em letras maiúsculas, com validação por constraint CHECK.'
-      },
-      {
         name: 'alocacao_sgc',
         originalName: 'Alocação no SGC',
         type: 'BOOLEAN',
@@ -288,6 +280,14 @@ export const TABLES_METADATA: TableDefinition[] = [
         isFk: true,
         fkTarget: 'perfis_contratados(id)',
         description: 'Chave estrangeira vinculando ao Perfil Contratado base.'
+      },
+      {
+        name: 'mes_referencia',
+        originalName: 'Mês de referência',
+        type: 'VARCHAR(20)',
+        nullable: false,
+        checkConstraint: "mes_referencia IN ('JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO')",
+        description: 'Mês de referência da alocação (CONSTRAINT chk_os_mes_valido). Compõe a chave única CONSTRAINT UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia).'
       },
       {
         name: 'nome_profissional',
