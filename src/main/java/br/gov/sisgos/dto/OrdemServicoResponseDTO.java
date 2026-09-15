@@ -4,6 +4,7 @@ import br.gov.sisgos.domain.entity.OrdemServico;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -19,7 +20,7 @@ public class OrdemServicoResponseDTO {
     private String siglaSecretaria;
     private Integer numeroOs;
     private Integer anoReferencia;
-    private String mesReferencia;
+    private String mesesAlocados;
     private Boolean alocacaoSgc;
     private Boolean entregaSgc;
     private Boolean descricaoSgc;
@@ -31,6 +32,17 @@ public class OrdemServicoResponseDTO {
 
     public static OrdemServicoResponseDTO fromEntity(OrdemServico entity) {
         if (entity == null) return null;
+
+        String meses = "";
+        if (entity.getAlocacoes() != null && !entity.getAlocacoes().isEmpty()) {
+            List<String> listaMeses = entity.getAlocacoes().stream()
+                    .map(a -> a.getMesReferencia())
+                    .filter(m -> m != null && !m.isBlank())
+                    .distinct()
+                    .toList();
+            meses = String.join(", ", listaMeses);
+        }
+
         return OrdemServicoResponseDTO.builder()
                 .id(entity.getId())
                 .projetoId(entity.getProjeto() != null ? entity.getProjeto().getId() : null)
@@ -39,7 +51,7 @@ public class OrdemServicoResponseDTO {
                 .siglaSecretaria(entity.getProjeto() != null ? entity.getProjeto().getSiglaSecretaria() : null)
                 .numeroOs(entity.getNumeroOs())
                 .anoReferencia(entity.getAnoReferencia())
-                .mesReferencia(entity.getMesReferencia())
+                .mesesAlocados(meses)
                 .alocacaoSgc(entity.getAlocacaoSgc())
                 .entregaSgc(entity.getEntregaSgc())
                 .descricaoSgc(entity.getDescricaoSgc())

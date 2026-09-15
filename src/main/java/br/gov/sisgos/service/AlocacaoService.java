@@ -46,6 +46,7 @@ public class AlocacaoService {
 
         AlocacaoPerfilOs alocacao = new AlocacaoPerfilOs();
         alocacao.setOrdemServico(os);
+        alocacao.setMesReferencia(dto.getMesReferencia().toUpperCase().trim());
         alocacao.setNomeProfissional(dto.getNomeProfissional().trim());
         alocacao.setPercentualAlocacao(dto.getPercentualAlocacao());
 
@@ -64,6 +65,9 @@ public class AlocacaoService {
         PerfilContratado perfil = perfilRepository.findById(dto.getPerfilContratadoId())
                 .orElseThrow(() -> new EntityNotFoundException("Perfil contratado não encontrado com ID: " + dto.getPerfilContratadoId()));
 
+        if (dto.getMesReferencia() != null && !dto.getMesReferencia().isBlank()) {
+            alocacao.setMesReferencia(dto.getMesReferencia().toUpperCase().trim());
+        }
         alocacao.setNomeProfissional(dto.getNomeProfissional().trim());
         alocacao.setPercentualAlocacao(dto.getPercentualAlocacao());
         alocacao.aplicarRegraDeNegocio(perfil);

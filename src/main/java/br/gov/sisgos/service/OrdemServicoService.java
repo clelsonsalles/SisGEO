@@ -53,7 +53,6 @@ public class OrdemServicoService {
                 .projeto(projeto)
                 .numeroOs(dto.getNumeroOs())
                 .anoReferencia(dto.getAnoReferencia())
-                .mesReferencia(dto.getMesReferencia().toUpperCase().trim())
                 .alocacaoSgc(Boolean.TRUE.equals(dto.getAlocacaoSgc()))
                 .entregaSgc(Boolean.TRUE.equals(dto.getEntregaSgc()))
                 .descricaoSgc(Boolean.TRUE.equals(dto.getDescricaoSgc()))
@@ -78,7 +77,6 @@ public class OrdemServicoService {
 
         os.setNumeroOs(dto.getNumeroOs());
         os.setAnoReferencia(dto.getAnoReferencia());
-        os.setMesReferencia(dto.getMesReferencia().toUpperCase().trim());
         os.setAlocacaoSgc(Boolean.TRUE.equals(dto.getAlocacaoSgc()));
         os.setEntregaSgc(Boolean.TRUE.equals(dto.getEntregaSgc()));
         os.setDescricaoSgc(Boolean.TRUE.equals(dto.getDescricaoSgc()));

@@ -16,6 +16,9 @@ public class AlocacaoRequestDTO {
     @NotNull(message = "O ID do perfil contratado é obrigatório.")
     private Long perfilContratadoId;
 
+    @NotBlank(message = "O mês de referência é obrigatório.")
+    private String mesReferencia;
+
     @NotBlank(message = "O nome do profissional é obrigatório.")
     private String nomeProfissional;
 

@@ -25,9 +25,6 @@ public class OrdemServicoRequestDTO {
     @Max(value = 2100, message = "Ano máximo permitido é 2100.")
     private Integer anoReferencia;
 
-    @NotBlank(message = "O mês de referência é obrigatório.")
-    private String mesReferencia;
-
     private Boolean alocacaoSgc = false;
     private Boolean entregaSgc = false;
     private Boolean descricaoSgc = false;

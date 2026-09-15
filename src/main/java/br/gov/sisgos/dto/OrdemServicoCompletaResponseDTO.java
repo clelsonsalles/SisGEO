@@ -18,7 +18,7 @@ public class OrdemServicoCompletaResponseDTO {
     private Long id;
     private Integer numeroOs;
     private Integer anoReferencia;
-    private String mesReferencia;
+    private String mesesAlocados;
     private Boolean alocacaoSgc;
     private Boolean entregaSgc;
     private Boolean descricaoSgc;
@@ -66,11 +66,21 @@ public class OrdemServicoCompletaResponseDTO {
                 ? entity.getAlocacoes().stream().map(AlocacaoResponseDTO::fromEntity).toList()
                 : new ArrayList<>();
 
+        String meses = "";
+        if (entity.getAlocacoes() != null && !entity.getAlocacoes().isEmpty()) {
+            List<String> listaMeses = entity.getAlocacoes().stream()
+                    .map(a -> a.getMesReferencia())
+                    .filter(m -> m != null && !m.isBlank())
+                    .distinct()
+                    .toList();
+            meses = String.join(", ", listaMeses);
+        }
+
         return OrdemServicoCompletaResponseDTO.builder()
                 .id(entity.getId())
                 .numeroOs(entity.getNumeroOs())
                 .anoReferencia(entity.getAnoReferencia())
-                .mesReferencia(entity.getMesReferencia())
+                .mesesAlocados(meses)
                 .alocacaoSgc(entity.getAlocacaoSgc())
                 .entregaSgc(entity.getEntregaSgc())
                 .descricaoSgc(entity.getDescricaoSgc())

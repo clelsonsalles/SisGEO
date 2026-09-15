@@ -17,6 +17,7 @@ public class AlocacaoResponseDTO {
     private Long perfilContratadoId;
     private String nomePerfil;
     private String itemContratacao;
+    private String mesReferencia;
     private String nomeProfissional;
     private Integer percentualAlocacao;
     private String documentoReferencia;
@@ -32,6 +33,7 @@ public class AlocacaoResponseDTO {
                 .perfilContratadoId(entity.getPerfilContratado() != null ? entity.getPerfilContratado().getId() : null)
                 .nomePerfil(entity.getPerfilContratado() != null ? entity.getPerfilContratado().getNomePerfil() : null)
                 .itemContratacao(entity.getPerfilContratado() != null ? entity.getPerfilContratado().getItemContratacao() : null)
+                .mesReferencia(entity.getMesReferencia())
                 .nomeProfissional(entity.getNomeProfissional())
                 .percentualAlocacao(entity.getPercentualAlocacao())
                 .documentoReferencia(entity.getDocumentoReferencia())

@@ -151,7 +151,6 @@ public class AdminService {
                 .projeto(projetosSalvos.get(0))
                 .numeroOs(101)
                 .anoReferencia(2026)
-                .mesReferencia("JANEIRO")
                 .alocacaoSgc(true)
                 .entregaSgc(true)
                 .descricaoSgc(true)
@@ -163,7 +162,6 @@ public class AdminService {
                 .projeto(projetosSalvos.get(0))
                 .numeroOs(102)
                 .anoReferencia(2026)
-                .mesReferencia("FEVEREIRO")
                 .alocacaoSgc(true)
                 .entregaSgc(true)
                 .descricaoSgc(false)
@@ -175,7 +173,6 @@ public class AdminService {
                 .projeto(projetosSalvos.get(1))
                 .numeroOs(201)
                 .anoReferencia(2026)
-                .mesReferencia("JANEIRO")
                 .alocacaoSgc(true)
                 .entregaSgc(false)
                 .descricaoSgc(true)
@@ -187,7 +184,6 @@ public class AdminService {
                 .projeto(projetosSalvos.get(2))
                 .numeroOs(301)
                 .anoReferencia(2026)
-                .mesReferencia("MARÇO")
                 .alocacaoSgc(false)
                 .entregaSgc(false)
                 .descricaoSgc(false)
@@ -200,30 +196,35 @@ public class AdminService {
         // 4. Alocações de Perfil
         AlocacaoPerfilOs a1 = new AlocacaoPerfilOs();
         a1.setOrdemServico(ossSalvas.get(0));
+        a1.setMesReferencia("JANEIRO");
         a1.setNomeProfissional("Carlos Eduardo Silveira");
         a1.setPercentualAlocacao(50);
         a1.aplicarRegraDeNegocio(perfisSalvos.get(0));
 
         AlocacaoPerfilOs a2 = new AlocacaoPerfilOs();
         a2.setOrdemServico(ossSalvas.get(0));
+        a2.setMesReferencia("JANEIRO");
         a2.setNomeProfissional("Mariana Souza Ribeiro");
         a2.setPercentualAlocacao(45);
         a2.aplicarRegraDeNegocio(perfisSalvos.get(1));
 
         AlocacaoPerfilOs a3 = new AlocacaoPerfilOs();
         a3.setOrdemServico(ossSalvas.get(1));
+        a3.setMesReferencia("FEVEREIRO");
         a3.setNomeProfissional("Mariana Souza Ribeiro");
         a3.setPercentualAlocacao(50);
         a3.aplicarRegraDeNegocio(perfisSalvos.get(1));
 
         AlocacaoPerfilOs a4 = new AlocacaoPerfilOs();
         a4.setOrdemServico(ossSalvas.get(1));
+        a4.setMesReferencia("FEVEREIRO");
         a4.setNomeProfissional("Lucas Pinheiro Castro");
         a4.setPercentualAlocacao(100);
         a4.aplicarRegraDeNegocio(perfisSalvos.get(2));
 
         AlocacaoPerfilOs a5 = new AlocacaoPerfilOs();
         a5.setOrdemServico(ossSalvas.get(2));
+        a5.setMesReferencia("MARÇO");
         a5.setNomeProfissional("Ana Beatriz Medeiros");
         a5.setPercentualAlocacao(100);
         a5.aplicarRegraDeNegocio(perfisSalvos.get(4));
