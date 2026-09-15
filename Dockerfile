@@ -14,9 +14,8 @@ COPY package.json package-lock.json* bun.lock* ./
 RUN npm ci || npm install
 
 # Copia código-fonte do front-end e executa compilação estática dos ativos SPA
-COPY index.html tsconfig.json vite.config.ts server.ts* ./
-COPY public ./public
-COPY src ./src
+COPY . .
+RUN mkdir -p public
 
 # Compila os ativos estáticos do frontend (HTML, JS, CSS) destinados ao Spring Boot
 RUN npm run build:client
