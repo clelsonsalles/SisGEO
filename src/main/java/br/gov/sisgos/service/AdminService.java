@@ -156,6 +156,9 @@ public class AdminService {
                 .descricaoSgc(true)
                 .situacaoSgc("Atestada pelo Fiscal")
                 .situacaoPassivo2026("Liquidado")
+                .nePlanejamento("2026NE000142")
+                .neFaturamento("2026NE000189")
+                .processoSeiPagamento("SEI-08001/002341/2026")
                 .build();
 
         OrdemServico os2 = OrdemServico.builder()
@@ -167,6 +170,9 @@ public class AdminService {
                 .descricaoSgc(false)
                 .situacaoSgc("Em Execução")
                 .situacaoPassivo2026("A Empenhar")
+                .nePlanejamento("2026NE000142")
+                .neFaturamento(null)
+                .processoSeiPagamento(null)
                 .build();
 
         OrdemServico os3 = OrdemServico.builder()
@@ -178,6 +184,9 @@ public class AdminService {
                 .descricaoSgc(true)
                 .situacaoSgc("Em Validação SGC")
                 .situacaoPassivo2026("Passivo Reconhecido")
+                .nePlanejamento("2026NE000215")
+                .neFaturamento("2026NE000280")
+                .processoSeiPagamento("SEI-08001/002955/2026")
                 .build();
 
         OrdemServico os4 = OrdemServico.builder()
@@ -189,6 +198,9 @@ public class AdminService {
                 .descricaoSgc(false)
                 .situacaoSgc("Planejada")
                 .situacaoPassivo2026("Sem Passivo")
+                .nePlanejamento("2026NE000301")
+                .neFaturamento("2026NE000301")
+                .processoSeiPagamento("SEI-08001/003112/2026")
                 .build();
 
         List<OrdemServico> ossSalvas = ordemServicoRepository.saveAll(Arrays.asList(os1, os2, os3, os4));
@@ -199,8 +211,6 @@ public class AdminService {
         a1.setMesReferencia("JANEIRO");
         a1.setNomeProfissional("Carlos Eduardo Silveira");
         a1.setPercentualAlocacao(new BigDecimal("50.00"));
-        a1.setNePlanejamento("2026NE000142");
-        a1.setNeFaturamento("2026NE000142");
         a1.aplicarRegraDeNegocio(perfisSalvos.get(0));
 
         AlocacaoPerfilOs a2 = new AlocacaoPerfilOs();
@@ -208,8 +218,6 @@ public class AdminService {
         a2.setMesReferencia("JANEIRO");
         a2.setNomeProfissional("Mariana Souza Ribeiro");
         a2.setPercentualAlocacao(new BigDecimal("45.50"));
-        a2.setNePlanejamento("2026NE000142");
-        a2.setNeFaturamento("2026NE000189");
         a2.aplicarRegraDeNegocio(perfisSalvos.get(1));
 
         AlocacaoPerfilOs a3 = new AlocacaoPerfilOs();
@@ -217,8 +225,6 @@ public class AdminService {
         a3.setMesReferencia("FEVEREIRO");
         a3.setNomeProfissional("Mariana Souza Ribeiro");
         a3.setPercentualAlocacao(new BigDecimal("50.00"));
-        a3.setNePlanejamento("2026NE000215");
-        a3.setNeFaturamento(null);
         a3.aplicarRegraDeNegocio(perfisSalvos.get(1));
 
         AlocacaoPerfilOs a4 = new AlocacaoPerfilOs();
@@ -226,8 +232,6 @@ public class AdminService {
         a4.setMesReferencia("FEVEREIRO");
         a4.setNomeProfissional("Lucas Pinheiro Castro");
         a4.setPercentualAlocacao(new BigDecimal("100.00"));
-        a4.setNePlanejamento("2026NE000215");
-        a4.setNeFaturamento("2026NE000280");
         a4.aplicarRegraDeNegocio(perfisSalvos.get(2));
 
         AlocacaoPerfilOs a5 = new AlocacaoPerfilOs();
@@ -235,8 +239,6 @@ public class AdminService {
         a5.setMesReferencia("MARÇO");
         a5.setNomeProfissional("Ana Beatriz Medeiros");
         a5.setPercentualAlocacao(new BigDecimal("100.00"));
-        a5.setNePlanejamento("2026NE000301");
-        a5.setNeFaturamento("2026NE000301");
         a5.aplicarRegraDeNegocio(perfisSalvos.get(4));
 
         alocacaoRepository.saveAll(Arrays.asList(a1, a2, a3, a4, a5));
