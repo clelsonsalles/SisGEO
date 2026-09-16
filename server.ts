@@ -282,9 +282,9 @@ app.post('/api/v1/ordens-servico/:id/alocacoes', (req, res) => {
     });
   }
 
-  const percentual = Number(rawPercentual);
-  if (percentual <= 0 || percentual > 100) {
-    return res.status(400).json({ error: 'O percentual de alocação deve estar entre 1 e 100%.' });
+  const percentual = Number(Number(rawPercentual).toFixed(2));
+  if (isNaN(percentual) || percentual < 0 || percentual > 100) {
+    return res.status(400).json({ error: 'O percentual de alocação deve estar entre 0.00% e 100.00%.' });
   }
 
   // Business Rule: Copy snapshot and calculate allocation cost
@@ -322,7 +322,10 @@ app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
   const { perfilContratadoId, perfil_contratado_id, nomeProfissional, nome_profissional, percentualAlocacao, percentual_alocacao, mes_referencia, mesReferencia } = req.body;
   const targetPerfilId = Number(perfilContratadoId ?? perfil_contratado_id);
   const targetNome = String(nomeProfissional ?? nome_profissional ?? '').trim();
-  const targetPercentual = Number(percentualAlocacao ?? percentual_alocacao ?? 0);
+  const targetPercentual = Number(Number(percentualAlocacao ?? percentual_alocacao ?? 0).toFixed(2));
+  if (isNaN(targetPercentual) || targetPercentual < 0 || targetPercentual > 100) {
+    return res.status(400).json({ error: 'O percentual de alocação deve estar entre 0.00% e 100.00%.' });
+  }
 
   const perfil = perfis.find((p) => p.id === targetPerfilId);
   if (!perfil) {

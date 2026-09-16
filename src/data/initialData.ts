@@ -184,7 +184,7 @@ export const INITIAL_ALOCACOES: AlocacaoPerfilOs[] = [
     perfil_contratado_id: 3,
     mes_referencia: 'JANEIRO',
     nome_profissional: 'Rodrigo Silveira',
-    percentual_alocacao: 50,
+    percentual_alocacao: 50.00,
     documento_referencia: 'Contrato 45/2024 - Lote 1',
     custo_mensal_perfil: 9800.00,
     custo_alocacao: 4900.00,
@@ -196,10 +196,10 @@ export const INITIAL_ALOCACOES: AlocacaoPerfilOs[] = [
     perfil_contratado_id: 2,
     mes_referencia: 'FEVEREIRO',
     nome_profissional: 'Mariana Vasconcelos',
-    percentual_alocacao: 50,
+    percentual_alocacao: 45.50,
     documento_referencia: 'Contrato 45/2024 - Lote 1',
     custo_mensal_perfil: 14200.00,
-    custo_alocacao: 7100.00,
+    custo_alocacao: 6461.00,
     criado_em: '2026-02-01 09:40:00'
   },
   {

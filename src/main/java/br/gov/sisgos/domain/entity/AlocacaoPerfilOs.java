@@ -39,8 +39,8 @@ public class AlocacaoPerfilOs {
     @Column(name = "nome_profissional", length = 200, nullable = false)
     private String nomeProfissional;
 
-    @Column(name = "percentual_alocacao", nullable = false)
-    private Integer percentualAlocacao;
+    @Column(name = "percentual_alocacao", precision = 5, scale = 2, nullable = false)
+    private BigDecimal percentualAlocacao;
 
     @Column(name = "documento_referencia", length = 255, nullable = false)
     private String documentoReferencia;
@@ -65,8 +65,7 @@ public class AlocacaoPerfilOs {
         this.custoMensalPerfil = perfil.getCustoMensalPerfil();
 
         if (this.percentualAlocacao != null && this.custoMensalPerfil != null) {
-            BigDecimal perc = BigDecimal.valueOf(this.percentualAlocacao);
-            this.custoAlocacao = perc.multiply(this.custoMensalPerfil)
+            this.custoAlocacao = this.percentualAlocacao.multiply(this.custoMensalPerfil)
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         } else {
             this.custoAlocacao = BigDecimal.ZERO;

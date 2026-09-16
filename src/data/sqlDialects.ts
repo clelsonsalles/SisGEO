@@ -65,7 +65,6 @@ CREATE TABLE ordens_servico (
 
     -- Restrições de Domínio e Unicidade
     CONSTRAINT chk_os_numero_positivo CHECK (numero_os > 0),
-    CONSTRAINT chk_os_ano_valido CHECK (ano_referencia BETWEEN 2000 AND 2100),
     CONSTRAINT unq_os_projeto_ano_num UNIQUE (projeto_id, numero_os, ano_referencia)
 );
 
@@ -80,7 +79,7 @@ CREATE TABLE alocacoes_perfil_os (
     perfil_contratado_id BIGINT NOT NULL,
     mes_referencia VARCHAR(20) NOT NULL,
     nome_profissional VARCHAR(200) NOT NULL,
-    percentual_alocacao INTEGER NOT NULL,
+    percentual_alocacao NUMERIC(5, 2) NOT NULL,
     documento_referencia VARCHAR(255) NOT NULL,
     custo_mensal_perfil NUMERIC(12, 2) NOT NULL,
     custo_alocacao NUMERIC(12, 2) NOT NULL,
@@ -100,7 +99,7 @@ CREATE TABLE alocacoes_perfil_os (
         ON DELETE RESTRICT,
 
     -- Restrições de Domínio, Validade e Unicidade
-    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0 AND percentual_alocacao <= 100),
+    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0.00 AND percentual_alocacao <= 100.00),
     CONSTRAINT chk_custo_mensal_positivo CHECK (custo_mensal_perfil >= 0.00),
     CONSTRAINT chk_custo_alocacao_positivo CHECK (custo_alocacao >= 0.00),
     CONSTRAINT chk_os_mes_valido CHECK (
@@ -146,7 +145,7 @@ BEGIN
     NEW.documento_referencia := v_doc_ref;
 
     -- Cálculo automático do Custo da Alocação
-    NEW.custo_alocacao := ROUND((NEW.percentual_alocacao::NUMERIC * v_custo_mensal) / 100.0, 2);
+    NEW.custo_alocacao := ROUND((NEW.percentual_alocacao * v_custo_mensal) / 100.0, 2);
 
     RETURN NEW;
 END;
@@ -222,7 +221,6 @@ CREATE TABLE ordens_servico (
         ON DELETE RESTRICT,
 
     CONSTRAINT chk_os_numero CHECK (numero_os > 0),
-    CONSTRAINT chk_os_ano CHECK (ano_referencia BETWEEN 2000 AND 2100),
     CONSTRAINT unq_os_proj_ano_num UNIQUE (projeto_id, numero_os, ano_referencia)
 ) ENGINE=InnoDB;
 
@@ -234,7 +232,7 @@ CREATE TABLE alocacoes_perfil_os (
     perfil_contratado_id BIGINT NOT NULL,
     mes_referencia VARCHAR(20) NOT NULL,
     nome_profissional VARCHAR(200) NOT NULL,
-    percentual_alocacao INT NOT NULL,
+    percentual_alocacao DECIMAL(5, 2) NOT NULL,
     documento_referencia VARCHAR(255) NOT NULL,
     custo_mensal_perfil DECIMAL(12, 2) NOT NULL,
     custo_alocacao DECIMAL(12, 2) NOT NULL,
@@ -252,7 +250,7 @@ CREATE TABLE alocacoes_perfil_os (
         ON UPDATE CASCADE 
         ON DELETE RESTRICT,
 
-    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0 AND percentual_alocacao <= 100),
+    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0.00 AND percentual_alocacao <= 100.00),
     CONSTRAINT chk_os_mes_valido CHECK (
         mes_referencia IN (
             'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 
@@ -354,7 +352,6 @@ CREATE TABLE ordens_servico (
 
     CONSTRAINT fk_os_projeto FOREIGN KEY (projeto_id) REFERENCES projetos(id),
     CONSTRAINT chk_os_numero CHECK (numero_os > 0),
-    CONSTRAINT chk_os_ano CHECK (ano_referencia BETWEEN 2000 AND 2100),
     CONSTRAINT unq_os_proj_ano_num UNIQUE (projeto_id, numero_os, ano_referencia)
 );
 
@@ -365,7 +362,7 @@ CREATE TABLE alocacoes_perfil_os (
     perfil_contratado_id BIGINT NOT NULL,
     mes_referencia VARCHAR(20) NOT NULL,
     nome_profissional VARCHAR(200) NOT NULL,
-    percentual_alocacao INT NOT NULL,
+    percentual_alocacao DECIMAL(5, 2) NOT NULL,
     documento_referencia VARCHAR(255) NOT NULL,
     custo_mensal_perfil DECIMAL(12, 2) NOT NULL,
     custo_alocacao DECIMAL(12, 2) NOT NULL,
@@ -373,7 +370,7 @@ CREATE TABLE alocacoes_perfil_os (
 
     CONSTRAINT fk_alocacao_os FOREIGN KEY (ordem_servico_id) REFERENCES ordens_servico(id) ON DELETE CASCADE,
     CONSTRAINT fk_alocacao_perfil FOREIGN KEY (perfil_contratado_id) REFERENCES perfis_contratados(id),
-    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao BETWEEN 0 AND 100),
+    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao BETWEEN 0.00 AND 100.00),
     CONSTRAINT chk_os_mes_valido CHECK (mes_referencia IN (
         'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
         'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
@@ -436,7 +433,7 @@ CREATE TABLE alocacoes_perfil_os (
         )
     ),
     nome_profissional TEXT NOT NULL,
-    percentual_alocacao INTEGER NOT NULL CHECK (percentual_alocacao >= 0 AND percentual_alocacao <= 100),
+    percentual_alocacao REAL NOT NULL CHECK (percentual_alocacao >= 0.00 AND percentual_alocacao <= 100.00),
     documento_referencia TEXT NOT NULL,
     custo_mensal_perfil REAL NOT NULL,
     custo_alocacao REAL NOT NULL,

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useSisgos } from '../context/SisgosContext';
-import { formatCurrency, formatNumber } from '../utils/formatters';
+import { formatCurrency, formatNumber, formatPercent } from '../utils/formatters';
 import { MESES_REFERENCIA, MesReferencia } from '../types/models';
 import { ActiveTab } from './Navbar';
 
@@ -1002,7 +1002,7 @@ export const DashboardAnalitico: React.FC<DashboardAnaliticoProps> = ({ onNaviga
                               aria-valuemax={100}
                             ></div>
                           </div>
-                          <span className="fw-bold font-monospace">{item.percentual_alocacao}%</span>
+                          <span className="fw-bold font-monospace">{formatPercent(item.percentual_alocacao)}</span>
                         </div>
                       </td>
 
@@ -1033,10 +1033,10 @@ export const DashboardAnalitico: React.FC<DashboardAnaliticoProps> = ({ onNaviga
                   </td>
                   <td className="text-center small py-3 font-monospace">
                     {itensTabelaFinal.length > 0
-                      ? `${(
+                      ? `${formatPercent(
                           itensTabelaFinal.reduce((a, b) => a + b.percentual_alocacao, 0) /
                           itensTabelaFinal.length
-                        ).toFixed(0)}% méd.`
+                        )} méd.`
                       : '—'}
                   </td>
                   <td className="text-end small py-3 text-muted font-monospace">

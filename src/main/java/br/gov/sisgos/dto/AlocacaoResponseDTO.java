@@ -19,7 +19,7 @@ public class AlocacaoResponseDTO {
     private String itemContratacao;
     private String mesReferencia;
     private String nomeProfissional;
-    private Integer percentualAlocacao;
+    private BigDecimal percentualAlocacao;
     private String documentoReferencia;
     private BigDecimal custoMensalPerfil;
     private BigDecimal custoAlocacao;

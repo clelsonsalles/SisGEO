@@ -60,8 +60,8 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
       setErrorMsg('Informe um número de OS válido (maior que zero).');
       return;
     }
-    if (!anoReferencia || anoReferencia < 2000 || anoReferencia > 2100) {
-      setErrorMsg('Informe um ano de referência válido.');
+    if (!anoReferencia || isNaN(Number(anoReferencia))) {
+      setErrorMsg('Informe o ano de referência.');
       return;
     }
 
@@ -175,8 +175,6 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
                   <input
                     type="number"
                     className="form-control"
-                    min="2020"
-                    max="2035"
                     value={anoReferencia}
                     onChange={(e) => setAnoReferencia(Number(e.target.value))}
                     required

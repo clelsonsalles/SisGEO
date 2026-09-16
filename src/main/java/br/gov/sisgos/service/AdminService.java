@@ -198,35 +198,35 @@ public class AdminService {
         a1.setOrdemServico(ossSalvas.get(0));
         a1.setMesReferencia("JANEIRO");
         a1.setNomeProfissional("Carlos Eduardo Silveira");
-        a1.setPercentualAlocacao(50);
+        a1.setPercentualAlocacao(new BigDecimal("50.00"));
         a1.aplicarRegraDeNegocio(perfisSalvos.get(0));
 
         AlocacaoPerfilOs a2 = new AlocacaoPerfilOs();
         a2.setOrdemServico(ossSalvas.get(0));
         a2.setMesReferencia("JANEIRO");
         a2.setNomeProfissional("Mariana Souza Ribeiro");
-        a2.setPercentualAlocacao(45);
+        a2.setPercentualAlocacao(new BigDecimal("45.50"));
         a2.aplicarRegraDeNegocio(perfisSalvos.get(1));
 
         AlocacaoPerfilOs a3 = new AlocacaoPerfilOs();
         a3.setOrdemServico(ossSalvas.get(1));
         a3.setMesReferencia("FEVEREIRO");
         a3.setNomeProfissional("Mariana Souza Ribeiro");
-        a3.setPercentualAlocacao(50);
+        a3.setPercentualAlocacao(new BigDecimal("50.00"));
         a3.aplicarRegraDeNegocio(perfisSalvos.get(1));
 
         AlocacaoPerfilOs a4 = new AlocacaoPerfilOs();
         a4.setOrdemServico(ossSalvas.get(1));
         a4.setMesReferencia("FEVEREIRO");
         a4.setNomeProfissional("Lucas Pinheiro Castro");
-        a4.setPercentualAlocacao(100);
+        a4.setPercentualAlocacao(new BigDecimal("100.00"));
         a4.aplicarRegraDeNegocio(perfisSalvos.get(2));
 
         AlocacaoPerfilOs a5 = new AlocacaoPerfilOs();
         a5.setOrdemServico(ossSalvas.get(2));
         a5.setMesReferencia("MARÇO");
         a5.setNomeProfissional("Ana Beatriz Medeiros");
-        a5.setPercentualAlocacao(100);
+        a5.setPercentualAlocacao(new BigDecimal("100.00"));
         a5.aplicarRegraDeNegocio(perfisSalvos.get(4));
 
         alocacaoRepository.saveAll(Arrays.asList(a1, a2, a3, a4, a5));

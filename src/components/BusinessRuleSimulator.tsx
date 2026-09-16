@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Calculator, Sparkles, ArrowRight, CheckCircle2, ShieldCheck, Database, RefreshCw, Copy, Check } from 'lucide-react';
+import { formatPercent } from '../utils/formatters';
 
 interface ContractedProfileSample {
   id: number;
@@ -89,7 +90,7 @@ INSERT INTO alocacoes_perfil_os (
     ${selectedProfile.id},
     '${mesReferencia}',
     '${nomeProfissional}',
-    ${percentualAlocacao}
+    ${percentualAlocacao.toFixed(2)}
 );
 
 -- RESULTADO GERADO NO BANCO PELO TRIGGER:
@@ -197,26 +198,44 @@ INSERT INTO alocacoes_perfil_os (
             />
           </div>
 
-          {/* Allocation Slider */}
+          {/* Allocation Slider & Input */}
           <div className="space-y-2 pt-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-slate-300">Percentual de Alocação:</label>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                {percentualAlocacao}%
-              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={percentualAlocacao}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    if (isNaN(val)) {
+                      setPercentualAlocacao(0);
+                    } else {
+                      setPercentualAlocacao(Math.min(100, Math.max(0, parseFloat(val.toFixed(2)))));
+                    }
+                  }}
+                  className="w-20 px-2 py-0.5 text-xs font-mono font-bold text-center rounded bg-slate-900 text-indigo-300 border border-indigo-500/40 focus:outline-none focus:border-indigo-400"
+                />
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  {formatPercent(percentualAlocacao)}
+                </span>
+              </div>
             </div>
             <input
               type="range"
               min="0"
               max="100"
-              step="5"
+              step="0.25"
               value={percentualAlocacao}
-              onChange={(e) => setPercentualAlocacao(Number(e.target.value))}
+              onChange={(e) => setPercentualAlocacao(parseFloat(Number(e.target.value).toFixed(2)))}
               className="w-full accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-slate-500">
               <span>0% (Sem dedicação)</span>
-              <span>50% (Meio período)</span>
+              <span>33.33% / 50%</span>
               <span>100% (Integral)</span>
             </div>
           </div>
@@ -258,7 +277,7 @@ INSERT INTO alocacoes_perfil_os (
                 {formatBRL(custoCalculado)}
               </p>
               <p className="text-[10px] text-slate-400 mt-0.5">
-                ({percentualAlocacao}% de {formatBRL(selectedProfile.custo_mensal_perfil)})
+                ({formatPercent(percentualAlocacao)} de {formatBRL(selectedProfile.custo_mensal_perfil)})
               </p>
             </div>
             <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">

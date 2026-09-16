@@ -1,10 +1,13 @@
 package br.gov.sisgos.dto;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+
+import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -23,7 +26,8 @@ public class AlocacaoRequestDTO {
     private String nomeProfissional;
 
     @NotNull(message = "O percentual de alocação é obrigatório.")
-    @Min(value = 0, message = "Percentual mínimo é 0%.")
-    @Max(value = 100, message = "Percentual máximo é 100%.")
-    private Integer percentualAlocacao;
+    @DecimalMin(value = "0.00", message = "Percentual mínimo é 0%.")
+    @DecimalMax(value = "100.00", message = "Percentual máximo é 100%.")
+    @Digits(integer = 3, fraction = 2, message = "O percentual de alocação deve ter no máximo 2 casas decimais.")
+    private BigDecimal percentualAlocacao;
 }

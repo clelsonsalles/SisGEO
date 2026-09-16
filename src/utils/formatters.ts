@@ -25,5 +25,8 @@ export const formatPercent = (value: number | undefined | null): string => {
   if (value === undefined || value === null || isNaN(value)) {
     return '0%';
   }
-  return `${value}%`;
+  return `${new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(value)}%`;
 };

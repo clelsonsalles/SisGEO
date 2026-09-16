@@ -104,7 +104,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
       return;
     }
     if (percentualAlocacao <= 0 || percentualAlocacao > 100) {
-      setFormError('O percentual de alocação deve estar entre 1% e 100%.');
+      setFormError('O percentual de alocação deve estar entre 0,01% e 100,00%.');
       return;
     }
 
@@ -319,31 +319,35 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                             Percentual de Alocação (%) <span className="text-danger">*</span>
                           </span>
                           <span className="badge bg-primary fs-7">
-                            {percentualAlocacao}%
+                            {formatPercent(percentualAlocacao)}
                           </span>
                         </label>
                         <div className="d-flex align-items-center gap-3">
                           <input
                             type="range"
                             className="form-range flex-grow-1"
-                            min="5"
+                            min="0.5"
                             max="100"
-                            step="5"
+                            step="0.5"
                             value={percentualAlocacao}
-                            onChange={(e) => setPercentualAlocacao(Number(e.target.value))}
+                            onChange={(e) => setPercentualAlocacao(parseFloat(Number(e.target.value).toFixed(2)))}
                           />
-                          <div className="input-group" style={{ width: 120 }}>
+                          <div className="input-group" style={{ width: 140 }}>
                             <input
                               type="number"
                               className="form-control text-center"
-                              min="1"
+                              min="0.01"
                               max="100"
+                              step="0.01"
                               value={percentualAlocacao}
-                              onChange={(e) =>
-                                setPercentualAlocacao(
-                                  Math.min(100, Math.max(1, Number(e.target.value) || 1))
-                                )
-                              }
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                if (isNaN(val)) {
+                                  setPercentualAlocacao(0);
+                                } else {
+                                  setPercentualAlocacao(Math.min(100, Math.max(0, parseFloat(val.toFixed(2)))));
+                                }
+                              }}
                             />
                             <span className="input-group-text">%</span>
                           </div>
@@ -383,7 +387,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                             {formatCurrency(simulatedCustoAlocacao)}
                           </span>
                           <div className="text-muted" style={{ fontSize: '10px' }}>
-                            ({percentualAlocacao}% × {formatCurrency(simulatedCustoMensal)}) ÷ 100
+                            ({formatPercent(percentualAlocacao)} × {formatCurrency(simulatedCustoMensal)}) ÷ 100
                           </div>
                         </div>
                       </div>

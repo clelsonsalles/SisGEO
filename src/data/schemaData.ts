@@ -183,7 +183,6 @@ export const TABLES_METADATA: TableDefinition[] = [
         originalName: 'Ano de referência',
         type: 'INTEGER',
         nullable: false,
-        checkConstraint: 'ano_referencia BETWEEN 2000 AND 2100',
         description: 'Ano de vigência ou execução da OS (ex: 2025, 2026).'
       },
       {
@@ -299,10 +298,10 @@ export const TABLES_METADATA: TableDefinition[] = [
       {
         name: 'percentual_alocacao',
         originalName: 'Percentual de Alocação',
-        type: 'INTEGER',
+        type: 'NUMERIC(5, 2)',
         nullable: false,
-        checkConstraint: 'percentual_alocacao >= 0 AND percentual_alocacao <= 100',
-        description: 'Percentual de dedicação mensal do profissional na OS (ex: 50%, 100%).'
+        checkConstraint: 'percentual_alocacao >= 0.00 AND percentual_alocacao <= 100.00',
+        description: 'Percentual de dedicação mensal do profissional na OS com até duas casas decimais (ex: 33.33%, 45.50%, 50.00%, 100.00%).'
       },
       {
         name: 'documento_referencia',

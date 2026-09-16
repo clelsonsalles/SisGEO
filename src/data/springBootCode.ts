@@ -275,8 +275,8 @@ public class AlocacaoPerfilOs {
     @Column(name = "nome_profissional", length = 200, nullable = false)
     private String nomeProfissional;
 
-    @Column(name = "percentual_alocacao", nullable = false)
-    private Integer percentualAlocacao;
+    @Column(name = "percentual_alocacao", precision = 5, scale = 2, nullable = false)
+    private BigDecimal percentualAlocacao;
 
     @Column(name = "documento_referencia", length = 255, nullable = false)
     private String documentoReferencia;
@@ -306,8 +306,7 @@ public class AlocacaoPerfilOs {
         this.custoMensalPerfil = perfil.getCustoMensalPerfil();
 
         if (this.percentualAlocacao != null && this.custoMensalPerfil != null) {
-            BigDecimal perc = BigDecimal.valueOf(this.percentualAlocacao);
-            this.custoAlocacao = perc.multiply(this.custoMensalPerfil)
+            this.custoAlocacao = this.percentualAlocacao.multiply(this.custoMensalPerfil)
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         } else {
             this.custoAlocacao = BigDecimal.ZERO;
@@ -692,7 +691,6 @@ CREATE TABLE IF NOT EXISTS ordens_servico (
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_os_projeto FOREIGN KEY (projeto_id) REFERENCES projetos (id) ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT chk_os_numero_positivo CHECK (numero_os > 0),
-    CONSTRAINT chk_os_ano_valido CHECK (ano_referencia BETWEEN 2000 AND 2100),
     CONSTRAINT unq_os_projeto_ano_num UNIQUE (projeto_id, numero_os, ano_referencia)
 );
 
@@ -703,14 +701,14 @@ CREATE TABLE IF NOT EXISTS alocacoes_perfil_os (
     perfil_contratado_id BIGINT NOT NULL,
     mes_referencia VARCHAR(20) NOT NULL,
     nome_profissional VARCHAR(200) NOT NULL,
-    percentual_alocacao INTEGER NOT NULL,
+    percentual_alocacao NUMERIC(5, 2) NOT NULL,
     documento_referencia VARCHAR(255) NOT NULL,
     custo_mensal_perfil NUMERIC(12, 2) NOT NULL,
     custo_alocacao NUMERIC(12, 2) NOT NULL,
     criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_alocacao_os FOREIGN KEY (ordem_servico_id) REFERENCES ordens_servico (id) ON DELETE CASCADE,
     CONSTRAINT fk_alocacao_perfil FOREIGN KEY (perfil_contratado_id) REFERENCES perfis_contratados (id),
-    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0 AND percentual_alocacao <= 100),
+    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0.00 AND percentual_alocacao <= 100.00),
     CONSTRAINT chk_os_mes_valido CHECK (
         mes_referencia IN (
             'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 

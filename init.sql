@@ -69,7 +69,6 @@ CREATE TABLE IF NOT EXISTS ordens_servico (
         ON DELETE RESTRICT,
 
     CONSTRAINT chk_os_numero_positivo CHECK (numero_os > 0),
-    CONSTRAINT chk_os_ano_valido CHECK (ano_referencia BETWEEN 2000 AND 2100),
     CONSTRAINT unq_os_projeto_ano_numero UNIQUE (projeto_id, numero_os, ano_referencia)
 );
 
@@ -85,7 +84,7 @@ CREATE TABLE IF NOT EXISTS alocacoes_perfil_os (
     perfil_contratado_id BIGINT NOT NULL,
     mes_referencia VARCHAR(20) NOT NULL,
     nome_profissional VARCHAR(200) NOT NULL,
-    percentual_alocacao INTEGER NOT NULL,
+    percentual_alocacao NUMERIC(5, 2) NOT NULL,
     documento_referencia VARCHAR(255) NOT NULL,
     custo_mensal_perfil NUMERIC(12, 2) NOT NULL,
     custo_alocacao NUMERIC(12, 2) NOT NULL,
@@ -103,7 +102,7 @@ CREATE TABLE IF NOT EXISTS alocacoes_perfil_os (
         ON UPDATE CASCADE 
         ON DELETE RESTRICT,
 
-    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0 AND percentual_alocacao <= 100),
+    CONSTRAINT chk_percentual_alocacao CHECK (percentual_alocacao >= 0.00 AND percentual_alocacao <= 100.00),
     CONSTRAINT chk_custo_mensal_positivo CHECK (custo_mensal_perfil >= 0.00),
     CONSTRAINT chk_custo_alocacao_positivo CHECK (custo_alocacao >= 0.00),
     CONSTRAINT chk_os_mes_valido CHECK (
@@ -144,7 +143,7 @@ BEGIN
     NEW.documento_referencia := v_doc_ref;
 
     -- Cálculo automático do Custo da Alocação: (Percentual * Custo Mensal) / 100
-    NEW.custo_alocacao := ROUND((NEW.percentual_alocacao::NUMERIC * v_custo_mensal) / 100.0, 2);
+    NEW.custo_alocacao := ROUND((NEW.percentual_alocacao * v_custo_mensal) / 100.0, 2);
 
     RETURN NEW;
 END;
@@ -191,9 +190,9 @@ ON CONFLICT DO NOTHING;
 INSERT INTO alocacoes_perfil_os 
 (ordem_servico_id, perfil_contratado_id, mes_referencia, nome_profissional, percentual_alocacao, documento_referencia, custo_mensal_perfil, custo_alocacao)
 VALUES
-(1, 1, 'JANEIRO', 'Carlos Eduardo Silveira', 50, 'Contrato 45/2024 - Lote 1', 18500.00, 9250.00),
-(1, 2, 'JANEIRO', 'Mariana Souza Ribeiro', 45, 'Contrato 45/2024 - Lote 1', 14200.00, 6390.00),
-(2, 2, 'FEVEREIRO', 'Mariana Souza Ribeiro', 50, 'Contrato 45/2024 - Lote 1', 14200.00, 7100.00),
-(2, 3, 'FEVEREIRO', 'Lucas Pinheiro Castro', 100, 'Contrato 45/2024 - Lote 1', 9800.00, 9800.00),
-(3, 5, 'JANEIRO', 'Ana Beatriz Medeiros', 100, 'Contrato 45/2024 - Lote 2', 15000.00, 15000.00)
+(1, 1, 'JANEIRO', 'Carlos Eduardo Silveira', 50.00, 'Contrato 45/2024 - Lote 1', 18500.00, 9250.00),
+(1, 2, 'JANEIRO', 'Mariana Souza Ribeiro', 45.50, 'Contrato 45/2024 - Lote 1', 14200.00, 6461.00),
+(2, 2, 'FEVEREIRO', 'Mariana Souza Ribeiro', 50.00, 'Contrato 45/2024 - Lote 1', 14200.00, 7100.00),
+(2, 3, 'FEVEREIRO', 'Lucas Pinheiro Castro', 100.00, 'Contrato 45/2024 - Lote 1', 9800.00, 9800.00),
+(3, 5, 'JANEIRO', 'Ana Beatriz Medeiros', 100.00, 'Contrato 45/2024 - Lote 2', 15000.00, 15000.00)
 ON CONFLICT DO NOTHING;

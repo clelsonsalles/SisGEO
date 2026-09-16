@@ -21,8 +21,6 @@ public class OrdemServicoRequestDTO {
     private Integer numeroOs;
 
     @NotNull(message = "O ano de referência é obrigatório.")
-    @Min(value = 2000, message = "Ano mínimo permitido é 2000.")
-    @Max(value = 2100, message = "Ano máximo permitido é 2100.")
     private Integer anoReferencia;
 
     private Boolean alocacaoSgc = false;
