@@ -11,7 +11,7 @@ import java.time.OffsetDateTime;
     name = "alocacoes_perfil_os",
     uniqueConstraints = @UniqueConstraint(
         name = "unq_alocacao_os_perfil_mes",
-        columnNames = {"ordem_servico_id", "perfil_contratado_id", "mes_referencia"}
+        columnNames = {"ordem_servico_id", "nome_profissional", "mes_referencia"}
     )
 )
 @Getter

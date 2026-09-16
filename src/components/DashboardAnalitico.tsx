@@ -82,6 +82,9 @@ export const DashboardAnalitico: React.FC<DashboardAnaliticoProps> = ({ onNaviga
     custo_mensal_perfil: number;
     custo_alocacao: number;
     documento_referencia: string;
+    ne_planejamento?: string | null;
+    ne_faturamento?: string | null;
+    processo_sei_pagamento?: string | null;
   }
 
   const alocacoesEnriquecidas = useMemo<AlocacaoEnriquecida[]>(() => {
@@ -108,6 +111,9 @@ export const DashboardAnalitico: React.FC<DashboardAnaliticoProps> = ({ onNaviga
         custo_mensal_perfil: aloc.custo_mensal_perfil,
         custo_alocacao: aloc.custo_alocacao,
         documento_referencia: aloc.documento_referencia,
+        ne_planejamento: os ? os.ne_planejamento : null,
+        ne_faturamento: os ? os.ne_faturamento : null,
+        processo_sei_pagamento: os ? os.processo_sei_pagamento : null,
       };
     });
   }, [alocacoes, ordensServico, projetos, perfis]);
@@ -453,7 +459,10 @@ export const DashboardAnalitico: React.FC<DashboardAnaliticoProps> = ({ onNaviga
         item.nome_projeto.toLowerCase().includes(query) ||
         item.sigla_projeto.toLowerCase().includes(query) ||
         item.sigla_secretaria.toLowerCase().includes(query) ||
-        item.documento_referencia.toLowerCase().includes(query)
+        item.documento_referencia.toLowerCase().includes(query) ||
+        (item.ne_planejamento && item.ne_planejamento.toLowerCase().includes(query)) ||
+        (item.ne_faturamento && item.ne_faturamento.toLowerCase().includes(query)) ||
+        (item.processo_sei_pagamento && item.processo_sei_pagamento.toLowerCase().includes(query))
       );
     });
   }, [alocacoesFiltradas, termoBuscaTabela]);
@@ -932,20 +941,23 @@ export const DashboardAnalitico: React.FC<DashboardAnaliticoProps> = ({ onNaviga
             <table className="table table-hover table-striped align-middle mb-0">
               <thead className="table-light sticky-top" style={{ zIndex: 1 }}>
                 <tr className="small text-secondary text-uppercase">
-                  <th style={{ width: '120px' }}>OS / Ref.</th>
+                  <th style={{ width: '110px' }}>OS / Ref.</th>
                   <th>Projeto & Secretaria</th>
                   <th>Profissional Designado</th>
                   <th>Perfil Contratado</th>
-                  <th className="text-center" style={{ width: '130px' }}>Alocação (%)</th>
-                  <th className="text-end" style={{ width: '140px' }}>Custo Base</th>
-                  <th className="text-end" style={{ width: '150px' }}>Custo Alocação (R$)</th>
-                  <th style={{ width: '150px' }}>Doc. Ref.</th>
+                  <th className="text-center" style={{ width: '110px' }}>Alocação (%)</th>
+                  <th style={{ width: '120px' }}>NE Planej. (OS)</th>
+                  <th style={{ width: '120px' }}>NE Fatur. (OS)</th>
+                  <th style={{ width: '130px' }}>Proc. SEI (OS)</th>
+                  <th className="text-end" style={{ width: '120px' }}>Custo Base</th>
+                  <th className="text-end" style={{ width: '130px' }}>Custo Alocação (R$)</th>
+                  <th style={{ width: '130px' }}>Doc. Ref.</th>
                 </tr>
               </thead>
               <tbody className="small">
                 {itensTabelaFinal.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-5 text-muted">
+                    <td colSpan={11} className="text-center py-5 text-muted">
                       <i className="bi bi-clipboard-x fs-1 d-block mb-2 text-secondary opacity-50"></i>
                       Nenhuma alocação encontrada com os filtros e busca aplicados.
                     </td>
@@ -1006,6 +1018,42 @@ export const DashboardAnalitico: React.FC<DashboardAnaliticoProps> = ({ onNaviga
                         </div>
                       </td>
 
+                      {/* NE Planejamento */}
+                      <td>
+                        {item.ne_planejamento ? (
+                          <span className="badge bg-light text-dark border font-monospace small">
+                            <i className="bi bi-file-earmark-ruled me-1 text-primary"></i>
+                            {item.ne_planejamento}
+                          </span>
+                        ) : (
+                          <span className="text-muted small">—</span>
+                        )}
+                      </td>
+
+                      {/* NE Faturamento */}
+                      <td>
+                        {item.ne_faturamento ? (
+                          <span className="badge bg-success-subtle text-success-emphasis border border-success-subtle font-monospace small">
+                            <i className="bi bi-receipt me-1"></i>
+                            {item.ne_faturamento}
+                          </span>
+                        ) : (
+                          <span className="text-muted small">—</span>
+                        )}
+                      </td>
+
+                      {/* Processo SEI Pagamento */}
+                      <td>
+                        {item.processo_sei_pagamento ? (
+                          <span className="badge bg-info-subtle text-info-emphasis border border-info-subtle font-monospace small">
+                            <i className="bi bi-folder2-open me-1"></i>
+                            {item.processo_sei_pagamento}
+                          </span>
+                        ) : (
+                          <span className="text-muted small">—</span>
+                        )}
+                      </td>
+
                       {/* Custo Base */}
                       <td className="text-end font-monospace text-muted">
                         {formatCurrency(item.custo_mensal_perfil)}
@@ -1018,7 +1066,7 @@ export const DashboardAnalitico: React.FC<DashboardAnaliticoProps> = ({ onNaviga
 
                       {/* Doc Referencia */}
                       <td>
-                        <small className="text-muted text-truncate d-block" style={{ maxWidth: 140 }}>
+                        <small className="text-muted text-truncate d-block" style={{ maxWidth: 130 }}>
                           {item.documento_referencia || '—'}
                         </small>
                       </td>
@@ -1039,7 +1087,7 @@ export const DashboardAnalitico: React.FC<DashboardAnaliticoProps> = ({ onNaviga
                         )} méd.`
                       : '—'}
                   </td>
-                  <td className="text-end small py-3 text-muted font-monospace">
+                  <td colSpan={3} className="text-end small py-3 text-muted font-monospace">
                     Subtotal:
                   </td>
                   <td className="text-end py-3 text-success fs-6 font-monospace">

@@ -58,6 +58,9 @@ public class OrdemServicoService {
                 .descricaoSgc(Boolean.TRUE.equals(dto.getDescricaoSgc()))
                 .situacaoSgc(dto.getSituacaoSgc() != null ? dto.getSituacaoSgc() : "Em Execução")
                 .situacaoPassivo2026(dto.getSituacaoPassivo2026() != null ? dto.getSituacaoPassivo2026() : "A Empenhar")
+                .nePlanejamento(dto.getNePlanejamento() != null ? dto.getNePlanejamento().trim() : null)
+                .neFaturamento(dto.getNeFaturamento() != null ? dto.getNeFaturamento().trim() : null)
+                .processoSeiPagamento(dto.getProcessoSeiPagamento() != null ? dto.getProcessoSeiPagamento().trim() : null)
                 .build();
 
         OrdemServico salva = ordemServicoRepository.save(os);
@@ -82,6 +85,9 @@ public class OrdemServicoService {
         os.setDescricaoSgc(Boolean.TRUE.equals(dto.getDescricaoSgc()));
         os.setSituacaoSgc(dto.getSituacaoSgc());
         os.setSituacaoPassivo2026(dto.getSituacaoPassivo2026());
+        os.setNePlanejamento(dto.getNePlanejamento() != null ? dto.getNePlanejamento().trim() : null);
+        os.setNeFaturamento(dto.getNeFaturamento() != null ? dto.getNeFaturamento().trim() : null);
+        os.setProcessoSeiPagamento(dto.getProcessoSeiPagamento() != null ? dto.getProcessoSeiPagamento().trim() : null);
 
         return OrdemServicoResponseDTO.fromEntity(os);
     }

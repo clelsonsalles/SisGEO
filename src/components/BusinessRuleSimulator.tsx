@@ -60,6 +60,21 @@ const SAMPLE_PROFILES: ContractedProfileSample[] = [
   }
 ];
 
+interface SampleOs {
+  id: number;
+  label: string;
+  ne_planejamento: string | null;
+  ne_faturamento: string | null;
+  processo_sei_pagamento: string | null;
+}
+
+const SAMPLE_OS_LIST: SampleOs[] = [
+  { id: 101, label: 'OS nº 101/2026 - SGC-CORP (SEPLAG)', ne_planejamento: '2026NE000142', ne_faturamento: '2026NE000189', processo_sei_pagamento: 'SEI-08001/002341/2026' },
+  { id: 102, label: 'OS nº 102/2026 - SGC-CORP (SEPLAG)', ne_planejamento: '2026NE000142', ne_faturamento: null, processo_sei_pagamento: null },
+  { id: 201, label: 'OS nº 201/2026 - TRANS-SEFAZ (SEFAZ)', ne_planejamento: '2026NE000215', ne_faturamento: '2026NE000280', processo_sei_pagamento: 'SEI-08001/002955/2026' },
+  { id: 301, label: 'OS nº 301/2026 - PEU-SAUDE (SES)', ne_planejamento: '2026NE000301', ne_faturamento: '2026NE000301', processo_sei_pagamento: 'SEI-08001/003112/2026' },
+];
+
 export const BusinessRuleSimulator: React.FC = () => {
   const [selectedProfileId, setSelectedProfileId] = useState<number>(1);
   const [selectedOsId, setSelectedOsId] = useState<number>(101);
@@ -69,6 +84,7 @@ export const BusinessRuleSimulator: React.FC = () => {
   const [copiedSql, setCopiedSql] = useState<boolean>(false);
 
   const selectedProfile = SAMPLE_PROFILES.find(p => p.id === selectedProfileId) || SAMPLE_PROFILES[0];
+  const selectedOs = SAMPLE_OS_LIST.find(o => o.id === selectedOsId) || SAMPLE_OS_LIST[0];
   
   // Rule calculation
   const custoCalculado = (percentualAlocacao * selectedProfile.custo_mensal_perfil) / 100;
@@ -79,6 +95,8 @@ export const BusinessRuleSimulator: React.FC = () => {
 
   const generatedInsertSql = `-- Inserção na tabela associativa 'alocacoes_perfil_os'
 -- Com o TRIGGER instalado no banco, basta informar os dados de entrada:
+-- Restrição de Unicidade: CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, nome_profissional, mes_referencia)
+-- Observação: NE Planejamento, NE Faturamento e Processo SEI pertencem à tabela 'ordens_servico'
 INSERT INTO alocacoes_perfil_os (
     ordem_servico_id,
     perfil_contratado_id,
@@ -86,7 +104,7 @@ INSERT INTO alocacoes_perfil_os (
     nome_profissional,
     percentual_alocacao
 ) VALUES (
-    (SELECT id FROM ordens_servico WHERE numero_os = ${selectedOsId} LIMIT 1),
+    (SELECT id FROM ordens_servico WHERE numero_os = ${selectedOs.id} LIMIT 1),
     ${selectedProfile.id},
     '${mesReferencia}',
     '${nomeProfissional}',
@@ -196,6 +214,38 @@ INSERT INTO alocacoes_perfil_os (
               placeholder="Ex: Carlos Eduardo Mendes"
               className="w-full px-3 py-2 text-xs rounded-lg bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-indigo-500"
             />
+          </div>
+
+          {/* Contexto da OS Selecionada (NEs e Processo SEI) */}
+          <div className="p-3 rounded-lg bg-slate-950/70 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Dados Orçamentários da OS #{selectedOs.id}
+              </span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                Nível Ordem de Serviço
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                <span className="text-[10px] text-slate-400 d-block">NE Planejamento:</span>
+                <span className="font-mono font-medium text-slate-200 block truncate">
+                  {selectedOs.ne_planejamento || '—'}
+                </span>
+              </div>
+              <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                <span className="text-[10px] text-slate-400 d-block">NE Faturamento:</span>
+                <span className="font-mono font-medium text-emerald-300 block truncate">
+                  {selectedOs.ne_faturamento || '—'}
+                </span>
+              </div>
+              <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                <span className="text-[10px] text-slate-400 d-block">Processo SEI:</span>
+                <span className="font-mono font-medium text-indigo-300 block truncate">
+                  {selectedOs.processo_sei_pagamento || '—'}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Allocation Slider & Input */}

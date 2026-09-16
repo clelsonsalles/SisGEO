@@ -76,34 +76,59 @@ app.get('/api/v1/ordens-servico', (req, res) => {
 app.post('/api/v1/ordens-servico', (req, res) => {
   const {
     projeto_id,
+    projetoId,
     numero_os,
+    numeroOs,
     ano_referencia,
+    anoReferencia,
     alocacao_sgc,
+    alocacaoSgc,
     entrega_sgc,
+    entregaSgc,
     descricao_sgc,
+    descricaoSgc,
     situacao_sgc,
+    situacaoSgc,
     situacao_passivo_2026,
+    situacaoPassivo2026,
+    ne_planejamento,
+    nePlanejamento,
+    ne_faturamento,
+    neFaturamento,
+    processo_sei_pagamento,
+    processoSeiPagamento,
   } = req.body;
 
-  if (!projeto_id || !numero_os || !ano_referencia) {
+  const finalProjId = Number(projeto_id ?? projetoId);
+  const finalNumeroOs = Number(numero_os ?? numeroOs);
+  const finalAno = Number(ano_referencia ?? anoReferencia);
+
+  if (!finalProjId || !finalNumeroOs || !finalAno) {
     return res.status(400).json({ error: 'Campos obrigatórios ausentes (projeto_id, numero_os, ano_referencia).' });
   }
 
-  const projExists = projetos.some((p) => p.id === Number(projeto_id));
+  const projExists = projetos.some((p) => p.id === finalProjId);
   if (!projExists) {
-    return res.status(400).json({ error: `Projeto com ID ${projeto_id} não encontrado.` });
+    return res.status(400).json({ error: `Projeto com ID ${finalProjId} não encontrado.` });
   }
+
+  const nePlan = ne_planejamento ?? nePlanejamento;
+  const neFat = ne_faturamento ?? neFaturamento;
+  const seiProc = processo_sei_pagamento ?? processoSeiPagamento;
 
   const newOs: OrdemServico = {
     id: ++nextOsId,
-    projeto_id: Number(projeto_id),
-    numero_os: Number(numero_os),
-    ano_referencia: Number(ano_referencia),
-    alocacao_sgc: Boolean(alocacao_sgc),
-    entrega_sgc: Boolean(entrega_sgc),
-    descricao_sgc: Boolean(descricao_sgc),
-    situacao_sgc: situacao_sgc || 'Em Execução',
-    situacao_passivo_2026: situacao_passivo_2026 || 'A Empenhar',
+    projeto_id: finalProjId,
+    numero_os: finalNumeroOs,
+    ano_referencia: finalAno,
+    alocacao_sgc: Boolean(alocacao_sgc ?? alocacaoSgc),
+    entrega_sgc: Boolean(entrega_sgc ?? entregaSgc),
+    descricao_sgc: Boolean(descricao_sgc ?? descricaoSgc),
+    situacao_sgc: situacao_sgc ?? situacaoSgc ?? 'Em Execução',
+    situacao_passivo_2026: situacao_passivo_2026 ?? situacaoPassivo2026 ?? 'A Empenhar',
+    ne_planejamento: nePlan ? String(nePlan).trim() : null,
+    ne_faturamento: neFat ? String(neFat).trim() : null,
+    processo_sei_pagamento: seiProc ? String(seiProc).trim() : null,
     criado_em: new Date().toISOString().replace('T', ' ').substring(0, 19),
   };
 
@@ -202,10 +227,52 @@ app.put('/api/v1/ordens-servico/:id', (req, res) => {
     return res.status(404).json({ error: `Ordem de Serviço com ID ${id} não encontrada.` });
   }
 
+  const {
+    projeto_id,
+    projetoId,
+    numero_os,
+    numeroOs,
+    ano_referencia,
+    anoReferencia,
+    alocacao_sgc,
+    alocacaoSgc,
+    entrega_sgc,
+    entregaSgc,
+    descricao_sgc,
+    descricaoSgc,
+    situacao_sgc,
+    situacaoSgc,
+    situacao_passivo_2026,
+    situacaoPassivo2026,
+    ne_planejamento,
+    nePlanejamento,
+    ne_faturamento,
+    neFaturamento,
+    processo_sei_pagamento,
+    processoSeiPagamento,
+  } = req.body;
+
+  const current = ordensServico[index];
   ordensServico[index] = {
-    ...ordensServico[index],
-    ...req.body,
-    id, // protect ID
+    ...current,
+    projeto_id: projeto_id !== undefined ? Number(projeto_id) : (projetoId !== undefined ? Number(projetoId) : current.projeto_id),
+    numero_os: numero_os !== undefined ? Number(numero_os) : (numeroOs !== undefined ? Number(numeroOs) : current.numero_os),
+    ano_referencia: ano_referencia !== undefined ? Number(ano_referencia) : (anoReferencia !== undefined ? Number(anoReferencia) : current.ano_referencia),
+    alocacao_sgc: alocacao_sgc !== undefined ? Boolean(alocacao_sgc) : (alocacaoSgc !== undefined ? Boolean(alocacaoSgc) : current.alocacao_sgc),
+    entrega_sgc: entrega_sgc !== undefined ? Boolean(entrega_sgc) : (entregaSgc !== undefined ? Boolean(entregaSgc) : current.entrega_sgc),
+    descricao_sgc: descricao_sgc !== undefined ? Boolean(descricao_sgc) : (descricaoSgc !== undefined ? Boolean(descricao_sgc) : current.descricao_sgc),
+    situacao_sgc: situacao_sgc ?? situacaoSgc ?? current.situacao_sgc,
+    situacao_passivo_2026: situacao_passivo_2026 ?? situacaoPassivo2026 ?? current.situacao_passivo_2026,
+    ne_planejamento: (ne_planejamento !== undefined || nePlanejamento !== undefined)
+      ? (String(ne_planejamento ?? nePlanejamento ?? '').trim() || null)
+      : current.ne_planejamento,
+    ne_faturamento: (ne_faturamento !== undefined || neFaturamento !== undefined)
+      ? (String(ne_faturamento ?? neFaturamento ?? '').trim() || null)
+      : current.ne_faturamento,
+    processo_sei_pagamento: (processo_sei_pagamento !== undefined || processoSeiPagamento !== undefined)
+      ? (String(processo_sei_pagamento ?? processoSeiPagamento ?? '').trim() || null)
+      : current.processo_sei_pagamento,
+    id,
   };
 
   res.json(ordensServico[index]);
@@ -248,7 +315,16 @@ app.post('/api/v1/ordens-servico/:id/alocacoes', (req, res) => {
     return res.status(404).json({ error: `Ordem de Serviço com ID ${osId} não encontrada.` });
   }
 
-  const { perfil_contratado_id, perfilContratadoId, nome_profissional, nomeProfissional, percentual_alocacao, percentualAlocacao, mes_referencia, mesReferencia } = req.body;
+  const {
+    perfil_contratado_id,
+    perfilContratadoId,
+    nome_profissional,
+    nomeProfissional,
+    percentual_alocacao,
+    percentualAlocacao,
+    mes_referencia,
+    mesReferencia,
+  } = req.body;
   const targetPerfilId = Number(perfil_contratado_id ?? perfilContratadoId);
   const targetNome = String(nome_profissional ?? nomeProfissional ?? '').trim();
   const rawPercentual = percentual_alocacao ?? percentualAlocacao;
@@ -270,15 +346,15 @@ app.post('/api/v1/ordens-servico/:id/alocacoes', (req, res) => {
     return res.status(400).json({ error: `Perfil contratado com ID ${targetPerfilId} não encontrado.` });
   }
 
-  // Validação CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
+  // Validação CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, nome_profissional, mes_referencia)
   const isDuplicate = alocacoes.some(
     (a) => a.ordem_servico_id === osId &&
-           a.perfil_contratado_id === perfil.id &&
+           a.nome_profissional.trim().toLowerCase() === targetNome.toLowerCase() &&
            a.mes_referencia === targetMes
   );
   if (isDuplicate) {
     return res.status(409).json({
-      error: `Violação da restrição UNIQUE (unq_alocacao_os_perfil_mes): Já existe uma alocação para o perfil '${perfil.nome_perfil}' no mês ${targetMes} nesta Ordem de Serviço #${os.numero_os}.`,
+      error: `Violação da restrição UNIQUE (unq_alocacao_os_perfil_mes): O profissional '${targetNome}' já possui alocação no mês ${targetMes} nesta Ordem de Serviço #${os.numero_os}.`,
     });
   }
 
@@ -319,7 +395,16 @@ app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
     return res.status(404).json({ error: `Alocação com ID ${alocacaoId} não encontrada.` });
   }
 
-  const { perfilContratadoId, perfil_contratado_id, nomeProfissional, nome_profissional, percentualAlocacao, percentual_alocacao, mes_referencia, mesReferencia } = req.body;
+  const {
+    perfilContratadoId,
+    perfil_contratado_id,
+    nomeProfissional,
+    nome_profissional,
+    percentualAlocacao,
+    percentual_alocacao,
+    mes_referencia,
+    mesReferencia,
+  } = req.body;
   const targetPerfilId = Number(perfilContratadoId ?? perfil_contratado_id);
   const targetNome = String(nomeProfissional ?? nome_profissional ?? '').trim();
   const targetPercentual = Number(Number(percentualAlocacao ?? percentual_alocacao ?? 0).toFixed(2));
@@ -340,16 +425,16 @@ app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
     });
   }
 
-  // Validação CONSTRAINT unq_alocacao_os_perfil_mes
+  // Validação CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, nome_profissional, mes_referencia)
   const isDuplicate = alocacoes.some(
     (a) => a.id !== alocacaoId &&
            a.ordem_servico_id === alocacoes[alocIndex].ordem_servico_id &&
-           a.perfil_contratado_id === perfil.id &&
+           a.nome_profissional.trim().toLowerCase() === targetNome.toLowerCase() &&
            a.mes_referencia === targetMes
   );
   if (isDuplicate) {
     return res.status(409).json({
-      error: `Violação da restrição UNIQUE (unq_alocacao_os_perfil_mes): Já existe outra alocação para o perfil '${perfil.nome_perfil}' no mês ${targetMes} nesta Ordem de Serviço.`,
+      error: `Violação da restrição UNIQUE (unq_alocacao_os_perfil_mes): O profissional '${targetNome}' já possui outra alocação no mês ${targetMes} nesta Ordem de Serviço.`,
     });
   }
 

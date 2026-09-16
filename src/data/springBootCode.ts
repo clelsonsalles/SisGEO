@@ -192,6 +192,15 @@ public class OrdemServico {
     @Column(name = "situacao_passivo_2026", length = 100)
     private String situacaoPassivo2026;
 
+    @Column(name = "ne_planejamento", length = 60)
+    private String nePlanejamento;
+
+    @Column(name = "ne_faturamento", length = 60)
+    private String neFaturamento;
+
+    @Column(name = "processo_sei_pagamento", length = 60)
+    private String processoSeiPagamento;
+
     @Column(name = "criado_em", nullable = false, updatable = false)
     private OffsetDateTime criadoEm;
 
@@ -247,7 +256,7 @@ import java.time.OffsetDateTime;
     name = "alocacoes_perfil_os",
     uniqueConstraints = @UniqueConstraint(
         name = "unq_alocacao_os_perfil_mes",
-        columnNames = {"ordem_servico_id", "perfil_contratado_id", "mes_referencia"}
+        columnNames = {"ordem_servico_id", "nome_profissional", "mes_referencia"}
     )
 )
 @Getter
@@ -687,6 +696,9 @@ CREATE TABLE IF NOT EXISTS ordens_servico (
     descricao_sgc BOOLEAN NOT NULL DEFAULT FALSE,
     situacao_sgc VARCHAR(100),
     situacao_passivo_2026 VARCHAR(100),
+    ne_planejamento VARCHAR(60),
+    ne_faturamento VARCHAR(60),
+    processo_sei_pagamento VARCHAR(60),
     criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_os_projeto FOREIGN KEY (projeto_id) REFERENCES projetos (id) ON UPDATE CASCADE ON DELETE RESTRICT,
@@ -716,7 +728,7 @@ CREATE TABLE IF NOT EXISTS alocacoes_perfil_os (
             'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
         )
     ),
-    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
+    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, nome_profissional, mes_referencia)
 );
 
 -- 5. Trigger PL/pgSQL

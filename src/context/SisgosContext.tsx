@@ -367,14 +367,14 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       throw new Error(`Perfil contratado com ID ${params.perfil_contratado_id} não encontrado.`);
     }
 
-    // Validação de Unicidade: CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
+    // Validação de Unicidade: CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, nome_profissional, mes_referencia)
     const isDuplicate = alocacoes.some(
       a => a.ordem_servico_id === params.ordem_servico_id &&
-           a.perfil_contratado_id === params.perfil_contratado_id &&
+           a.nome_profissional.trim().toLowerCase() === params.nome_profissional.trim().toLowerCase() &&
            a.mes_referencia === params.mes_referencia
     );
     if (isDuplicate) {
-      throw new Error(`Violação da restrição de unicidade (CONSTRAINT UNIQUE unq_alocacao_os_perfil_mes): Já existe uma alocação para o perfil '${perfil.nome_perfil}' no mês ${params.mes_referencia} nesta Ordem de Serviço.`);
+      throw new Error(`Violação da restrição de unicidade (CONSTRAINT UNIQUE unq_alocacao_os_perfil_mes): Já existe uma alocação para o profissional '${params.nome_profissional.trim()}' no mês ${params.mes_referencia} nesta Ordem de Serviço.`);
     }
 
     const custoMensal = perfil.custo_mensal_perfil;
@@ -425,15 +425,15 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const targetAloc = alocacoes.find(a => a.id === id);
     const osId = targetAloc ? targetAloc.ordem_servico_id : 0;
 
-    // Validação de Unicidade: CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE
+    // Validação de Unicidade: CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, nome_profissional, mes_referencia)
     const isDuplicate = alocacoes.some(
       a => a.id !== id &&
            a.ordem_servico_id === osId &&
-           a.perfil_contratado_id === params.perfil_contratado_id &&
+           a.nome_profissional.trim().toLowerCase() === params.nome_profissional.trim().toLowerCase() &&
            a.mes_referencia === params.mes_referencia
     );
     if (isDuplicate) {
-      throw new Error(`Violação da restrição de unicidade (CONSTRAINT UNIQUE unq_alocacao_os_perfil_mes): Já existe outra alocação para o perfil '${perfil.nome_perfil}' no mês ${params.mes_referencia} nesta Ordem de Serviço.`);
+      throw new Error(`Violação da restrição de unicidade (CONSTRAINT UNIQUE unq_alocacao_os_perfil_mes): Já existe outra alocação para o profissional '${params.nome_profissional.trim()}' no mês ${params.mes_referencia} nesta Ordem de Serviço.`);
     }
 
     const custoMensal = perfil.custo_mensal_perfil;
@@ -450,7 +450,7 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           percentual_alocacao: params.percentual_alocacao,
           documento_referencia: docRef,
           custo_mensal_perfil: custoMensal,
-          custo_alocacao: Math.round(custoAlocacao * 100) / 100
+          custo_alocacao: Math.round(custoAlocacao * 100) / 100,
         };
       }
       return a;

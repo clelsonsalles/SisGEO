@@ -59,6 +59,9 @@ CREATE TABLE IF NOT EXISTS ordens_servico (
     descricao_sgc BOOLEAN NOT NULL DEFAULT FALSE,
     situacao_sgc VARCHAR(100),
     situacao_passivo_2026 VARCHAR(100),
+    ne_planejamento VARCHAR(60),
+    ne_faturamento VARCHAR(60),
+    processo_sei_pagamento VARCHAR(60),
     criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -112,12 +115,12 @@ CREATE TABLE IF NOT EXISTS alocacoes_perfil_os (
             'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
         )
     ),
-    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
+    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, nome_profissional, mes_referencia)
 );
 
 CREATE INDEX IF NOT EXISTS idx_alocacoes_os_id ON alocacoes_perfil_os(ordem_servico_id);
 CREATE INDEX IF NOT EXISTS idx_alocacoes_perfil_id ON alocacoes_perfil_os(perfil_contratado_id);
-CREATE INDEX IF NOT EXISTS idx_alocacoes_os_perfil_mes ON alocacoes_perfil_os(ordem_servico_id, perfil_contratado_id, mes_referencia);
+CREATE INDEX IF NOT EXISTS idx_alocacoes_os_nome_mes ON alocacoes_perfil_os(ordem_servico_id, nome_profissional, mes_referencia);
 
 -- ------------------------------------------------------------------------
 -- 5. Trigger PL/pgSQL: Automação da Regra de Negócio de Alocação
@@ -179,12 +182,12 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 INSERT INTO ordens_servico 
-(projeto_id, numero_os, ano_referencia, alocacao_sgc, entrega_sgc, descricao_sgc, situacao_sgc, situacao_passivo_2026)
+(projeto_id, numero_os, ano_referencia, alocacao_sgc, entrega_sgc, descricao_sgc, situacao_sgc, situacao_passivo_2026, ne_planejamento, ne_faturamento, processo_sei_pagamento)
 VALUES
-(1, 101, 2026, TRUE, TRUE, TRUE, 'Atestada pelo Fiscal', 'Liquidado'),
-(1, 102, 2026, TRUE, TRUE, FALSE, 'Em Execução', 'A Empenhar'),
-(2, 201, 2026, TRUE, FALSE, TRUE, 'Em Validação SGC', 'Passivo Reconhecido'),
-(3, 301, 2026, FALSE, FALSE, FALSE, 'Planejada', 'Sem Passivo')
+(1, 101, 2026, TRUE, TRUE, TRUE, 'Atestada pelo Fiscal', 'Liquidado', '2026NE000142', '2026NE000189', 'SEI-08001/002341/2026'),
+(1, 102, 2026, TRUE, TRUE, FALSE, 'Em Execução', 'A Empenhar', '2026NE000142', NULL, NULL),
+(2, 201, 2026, TRUE, FALSE, TRUE, 'Em Validação SGC', 'Passivo Reconhecido', '2026NE000215', '2026NE000280', 'SEI-08001/002955/2026'),
+(3, 301, 2026, FALSE, FALSE, FALSE, 'Planejada', 'Sem Passivo', '2026NE000301', '2026NE000301', 'SEI-08001/003112/2026')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO alocacoes_perfil_os 

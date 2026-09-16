@@ -224,6 +224,27 @@ export const TABLES_METADATA: TableDefinition[] = [
         description: 'Status de controle do passivo orçamentário/financeiro para o exercício de 2026.'
       },
       {
+        name: 'ne_planejamento',
+        originalName: 'NE no planejamento',
+        type: 'VARCHAR(60)',
+        nullable: true,
+        description: 'Nota de Empenho considerada durante a fase de planejamento da Ordem de Serviço (campo texto opcional).'
+      },
+      {
+        name: 'ne_faturamento',
+        originalName: 'NE no faturamento',
+        type: 'VARCHAR(60)',
+        nullable: true,
+        description: 'Nota de Empenho considerada durante a fase de pagamento/faturamento da Ordem de Serviço (campo texto opcional).'
+      },
+      {
+        name: 'processo_sei_pagamento',
+        originalName: 'Processo SEI pagamento',
+        type: 'VARCHAR(60)',
+        nullable: true,
+        description: 'Número do processo SEI de pagamento da Ordem de Serviço (campo texto opcional).'
+      },
+      {
         name: 'criado_em',
         originalName: 'Data de Criação',
         type: 'TIMESTAMP WITH TIME ZONE',
@@ -286,14 +307,14 @@ export const TABLES_METADATA: TableDefinition[] = [
         type: 'VARCHAR(20)',
         nullable: false,
         checkConstraint: "mes_referencia IN ('JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO')",
-        description: 'Mês de referência da alocação (CONSTRAINT chk_os_mes_valido). Compõe a chave única CONSTRAINT UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia).'
+        description: 'Mês de referência da alocação (CONSTRAINT chk_os_mes_valido). Compõe a chave única CONSTRAINT UNIQUE (ordem_servico_id, nome_profissional, mes_referencia).'
       },
       {
         name: 'nome_profissional',
         originalName: 'Nome do Profissional',
         type: 'VARCHAR(200)',
         nullable: false,
-        description: 'Nome do profissional alocado na Ordem de Serviço.'
+        description: 'Nome do profissional alocado na Ordem de Serviço. Compõe a restrição de unicidade mensal CONSTRAINT unq_alocacao_os_perfil_mes (ordem_servico_id, nome_profissional, mes_referencia).'
       },
       {
         name: 'percentual_alocacao',

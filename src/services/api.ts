@@ -36,6 +36,9 @@ export function normalizeOrdemServico(item: any): OrdemServico {
     descricao_sgc: Boolean(item.descricao_sgc ?? item.descricaoSgc),
     situacao_sgc: item.situacao_sgc ?? item.situacaoSgc ?? 'Em Execução',
     situacao_passivo_2026: item.situacao_passivo_2026 ?? item.situacaoPassivo2026 ?? 'A Empenhar',
+    ne_planejamento: item.ne_planejamento ?? item.nePlanejamento ?? null,
+    ne_faturamento: item.ne_faturamento ?? item.neFaturamento ?? null,
+    processo_sei_pagamento: item.processo_sei_pagamento ?? item.processoSeiPagamento ?? null,
     criado_em: item.criado_em ?? item.criadoEm ?? '',
   };
 }
@@ -166,7 +169,20 @@ export const apiService = {
     const res = await fetch('/api/v1/ordens-servico', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...data,
+        projetoId: data.projeto_id,
+        numeroOs: data.numero_os,
+        anoReferencia: data.ano_referencia,
+        alocacaoSgc: data.alocacao_sgc,
+        entregaSgc: data.entrega_sgc,
+        descricaoSgc: data.descricao_sgc,
+        situacaoSgc: data.situacao_sgc,
+        situacaoPassivo2026: data.situacao_passivo_2026,
+        nePlanejamento: data.ne_planejamento,
+        neFaturamento: data.ne_faturamento,
+        processoSeiPagamento: data.processo_sei_pagamento,
+      }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} ao cadastrar ordem de serviço`);
     return normalizeOrdemServico(await res.json());
@@ -176,7 +192,20 @@ export const apiService = {
     const res = await fetch(`/api/v1/ordens-servico/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...data,
+        ...(data.projeto_id !== undefined && { projetoId: data.projeto_id }),
+        ...(data.numero_os !== undefined && { numeroOs: data.numero_os }),
+        ...(data.ano_referencia !== undefined && { anoReferencia: data.ano_referencia }),
+        ...(data.alocacao_sgc !== undefined && { alocacaoSgc: data.alocacao_sgc }),
+        ...(data.entrega_sgc !== undefined && { entregaSgc: data.entrega_sgc }),
+        ...(data.descricao_sgc !== undefined && { descricaoSgc: data.descricao_sgc }),
+        ...(data.situacao_sgc !== undefined && { situacaoSgc: data.situacao_sgc }),
+        ...(data.situacao_passivo_2026 !== undefined && { situacaoPassivo2026: data.situacao_passivo_2026 }),
+        ...(data.ne_planejamento !== undefined && { nePlanejamento: data.ne_planejamento }),
+        ...(data.ne_faturamento !== undefined && { neFaturamento: data.ne_faturamento }),
+        ...(data.processo_sei_pagamento !== undefined && { processoSeiPagamento: data.processo_sei_pagamento }),
+      }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} ao atualizar ordem de serviço`);
     return normalizeOrdemServico(await res.json());
@@ -192,7 +221,12 @@ export const apiService = {
   // 4. Alocações (N:N)
   async createAlocacao(
     osId: number,
-    data: { perfil_contratado_id: number; mes_referencia?: string; nome_profissional: string; percentual_alocacao: number }
+    data: {
+      perfil_contratado_id: number;
+      mes_referencia?: string;
+      nome_profissional: string;
+      percentual_alocacao: number;
+    }
   ): Promise<AlocacaoPerfilOs> {
     const res = await fetch(`/api/v1/ordens-servico/${osId}/alocacoes`, {
       method: 'POST',
@@ -217,7 +251,12 @@ export const apiService = {
   async updateAlocacao(
     osId: number,
     alocacaoId: number,
-    data: { perfil_contratado_id: number; mes_referencia?: string; nome_profissional: string; percentual_alocacao: number }
+    data: {
+      perfil_contratado_id: number;
+      mes_referencia?: string;
+      nome_profissional: string;
+      percentual_alocacao: number;
+    }
   ): Promise<AlocacaoPerfilOs> {
     const res = await fetch(`/api/v1/ordens-servico/${osId}/alocacoes/${alocacaoId}`, {
       method: 'PUT',

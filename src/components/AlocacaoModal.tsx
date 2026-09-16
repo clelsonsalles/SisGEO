@@ -208,6 +208,38 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                 </span>
               </div>
             </div>
+            {/* Informações de NE e Processo SEI da Ordem de Serviço */}
+            {(ordemServico.ne_planejamento || ordemServico.ne_faturamento || ordemServico.processo_sei_pagamento) && (
+              <div className="d-flex flex-wrap gap-3 mt-2 pt-2 border-top small align-items-center">
+                {ordemServico.ne_planejamento && (
+                  <div>
+                    <span className="text-muted me-1">NE Planejamento:</span>
+                    <span className="badge bg-light text-dark border font-monospace">
+                      <i className="bi bi-file-earmark-ruled me-1 text-primary"></i>
+                      {ordemServico.ne_planejamento}
+                    </span>
+                  </div>
+                )}
+                {ordemServico.ne_faturamento && (
+                  <div>
+                    <span className="text-muted me-1">NE Faturamento:</span>
+                    <span className="badge bg-success-subtle text-success-emphasis border border-success-subtle font-monospace">
+                      <i className="bi bi-receipt me-1"></i>
+                      {ordemServico.ne_faturamento}
+                    </span>
+                  </div>
+                )}
+                {ordemServico.processo_sei_pagamento && (
+                  <div>
+                    <span className="text-muted me-1">Processo SEI:</span>
+                    <span className="badge bg-info-subtle text-info-emphasis border border-info-subtle font-monospace">
+                      <i className="bi bi-folder2-open me-1"></i>
+                      {ordemServico.processo_sei_pagamento}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Body */}
@@ -279,7 +311,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                           ))}
                         </select>
                         <div className="form-text small">
-                          Restrição UNIQUE (OS + Perfil + Mês)
+                          Restrição UNIQUE (OS + Profissional + Mês)
                         </div>
                       </div>
 
@@ -308,7 +340,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                           ))}
                         </datalist>
                         <div className="form-text small">
-                          {nomesDistintos.length} profissionais cadastrados.
+                          Único na OS por mês ({nomesDistintos.length} cadastrados).
                         </div>
                       </div>
 
@@ -456,14 +488,14 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                 <table className="table table-hover align-middle mb-0">
                   <thead className="table-light">
                     <tr>
-                      <th style={{ width: '20%' }}>Profissional</th>
-                      <th style={{ width: '20%' }}>Perfil Contratado</th>
-                      <th className="text-center" style={{ width: '13%' }}>Mês Referência</th>
-                      <th className="text-center" style={{ width: '10%' }}>% Alocação</th>
-                      <th style={{ width: '14%' }}>Doc. Referência (Cópia)</th>
-                      <th className="text-end" style={{ width: '11%' }}>Custo Mensal (Cópia)</th>
-                      <th className="text-end" style={{ width: '12%' }}>Custo Alocação (Calc.)</th>
-                      <th className="text-center" style={{ width: '80px' }}>Ações</th>
+                      <th style={{ width: '22%' }}>Profissional</th>
+                      <th style={{ width: '22%' }}>Perfil Contratado</th>
+                      <th className="text-center" style={{ width: '12%' }}>Mês Ref.</th>
+                      <th className="text-center" style={{ width: '10%' }}>% Aloc.</th>
+                      <th style={{ width: '14%' }}>Doc. Ref.</th>
+                      <th className="text-end" style={{ width: '10%' }}>Custo Mensal</th>
+                      <th className="text-end" style={{ width: '10%' }}>Custo Aloc.</th>
+                      <th className="text-center" style={{ width: '70px' }}>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -503,7 +535,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                             </span>
                           </td>
                           <td>
-                            <span className="badge bg-light text-dark border text-truncate d-inline-block" style={{ maxWidth: 150 }}>
+                            <span className="badge bg-light text-dark border text-truncate d-inline-block" style={{ maxWidth: 140 }}>
                               {item.documento_referencia}
                             </span>
                           </td>

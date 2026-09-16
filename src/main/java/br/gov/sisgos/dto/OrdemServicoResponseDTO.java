@@ -26,6 +26,9 @@ public class OrdemServicoResponseDTO {
     private Boolean descricaoSgc;
     private String situacaoSgc;
     private String situacaoPassivo2026;
+    private String nePlanejamento;
+    private String neFaturamento;
+    private String processoSeiPagamento;
     private Integer totalAlocacoes;
     private BigDecimal valorTotalCalculado;
     private OffsetDateTime criadoEm;
@@ -57,6 +60,9 @@ public class OrdemServicoResponseDTO {
                 .descricaoSgc(entity.getDescricaoSgc())
                 .situacaoSgc(entity.getSituacaoSgc())
                 .situacaoPassivo2026(entity.getSituacaoPassivo2026())
+                .nePlanejamento(entity.getNePlanejamento())
+                .neFaturamento(entity.getNeFaturamento())
+                .processoSeiPagamento(entity.getProcessoSeiPagamento())
                 .totalAlocacoes(entity.getAlocacoes() != null ? entity.getAlocacoes().size() : 0)
                 .valorTotalCalculado(entity.getValorTotalOs())
                 .criadoEm(entity.getCriadoEm())

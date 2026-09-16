@@ -113,6 +113,9 @@ export const INITIAL_ORDENS_SERVICO: OrdemServico[] = [
     descricao_sgc: true,
     situacao_sgc: 'Atestada pelo Fiscal',
     situacao_passivo_2026: 'Liquidado',
+    ne_planejamento: '2026NE000142',
+    ne_faturamento: '2026NE000189',
+    processo_sei_pagamento: 'SEI-08001/002341/2026',
     criado_em: '2026-01-05 10:00:00'
   },
   {
@@ -125,6 +128,9 @@ export const INITIAL_ORDENS_SERVICO: OrdemServico[] = [
     descricao_sgc: false,
     situacao_sgc: 'Em Execução',
     situacao_passivo_2026: 'A Empenhar',
+    ne_planejamento: '2026NE000142',
+    ne_faturamento: null,
+    processo_sei_pagamento: null,
     criado_em: '2026-02-01 09:30:00'
   },
   {
@@ -137,6 +143,9 @@ export const INITIAL_ORDENS_SERVICO: OrdemServico[] = [
     descricao_sgc: true,
     situacao_sgc: 'Em Validação SGC',
     situacao_passivo_2026: 'Passivo Reconhecido',
+    ne_planejamento: '2026NE000215',
+    ne_faturamento: '2026NE000280',
+    processo_sei_pagamento: 'SEI-08001/002955/2026',
     criado_em: '2026-01-10 14:00:00'
   },
   {
@@ -149,6 +158,9 @@ export const INITIAL_ORDENS_SERVICO: OrdemServico[] = [
     descricao_sgc: false,
     situacao_sgc: 'Planejada',
     situacao_passivo_2026: 'Sem Passivo',
+    ne_planejamento: '2026NE000301',
+    ne_faturamento: '2026NE000301',
+    processo_sei_pagamento: 'SEI-08001/003112/2026',
     criado_em: '2026-02-25 16:20:00'
   }
 ];

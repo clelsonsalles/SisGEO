@@ -53,6 +53,9 @@ CREATE TABLE ordens_servico (
     descricao_sgc BOOLEAN NOT NULL DEFAULT FALSE,
     situacao_sgc VARCHAR(100),
     situacao_passivo_2026 VARCHAR(100),
+    ne_planejamento VARCHAR(60),
+    ne_faturamento VARCHAR(60),
+    processo_sei_pagamento VARCHAR(60),
     criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -109,12 +112,12 @@ CREATE TABLE alocacoes_perfil_os (
             'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
         )
     ),
-    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
+    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, nome_profissional, mes_referencia)
 );
 
 CREATE INDEX idx_alocacoes_os_id ON alocacoes_perfil_os(ordem_servico_id);
 CREATE INDEX idx_alocacoes_perfil_id ON alocacoes_perfil_os(perfil_contratado_id);
-CREATE INDEX idx_alocacoes_mes ON alocacoes_perfil_os(mes_referencia);
+CREATE INDEX idx_alocacoes_os_nome_mes ON alocacoes_perfil_os(ordem_servico_id, nome_profissional, mes_referencia);
 
 
 -- ========================================================================
@@ -211,6 +214,9 @@ CREATE TABLE ordens_servico (
     descricao_sgc BOOLEAN NOT NULL DEFAULT FALSE,
     situacao_sgc VARCHAR(100),
     situacao_passivo_2026 VARCHAR(100),
+    ne_planejamento VARCHAR(60),
+    ne_faturamento VARCHAR(60),
+    processo_sei_pagamento VARCHAR(60),
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -258,7 +264,7 @@ CREATE TABLE alocacoes_perfil_os (
             'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
         )
     ),
-    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
+    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, nome_profissional, mes_referencia)
 ) ENGINE=InnoDB;
 
 
@@ -348,6 +354,9 @@ CREATE TABLE ordens_servico (
     descricao_sgc BIT NOT NULL CONSTRAINT df_os_desc_sgc DEFAULT 0,
     situacao_sgc VARCHAR(100) NULL,
     situacao_passivo_2026 VARCHAR(100) NULL,
+    ne_planejamento VARCHAR(60) NULL,
+    ne_faturamento VARCHAR(60) NULL,
+    processo_sei_pagamento VARCHAR(60) NULL,
     criado_em DATETIMEOFFSET NOT NULL CONSTRAINT df_os_criado DEFAULT SYSDATETIMEOFFSET(),
 
     CONSTRAINT fk_os_projeto FOREIGN KEY (projeto_id) REFERENCES projetos(id),
@@ -375,7 +384,7 @@ CREATE TABLE alocacoes_perfil_os (
         'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
         'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
     )),
-    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
+    CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, nome_profissional, mes_referencia)
 );
 `;
 
@@ -417,6 +426,9 @@ CREATE TABLE ordens_servico (
     descricao_sgc INTEGER NOT NULL DEFAULT 0 CHECK (descricao_sgc IN (0, 1)),
     situacao_sgc TEXT,
     situacao_passivo_2026 TEXT,
+    ne_planejamento TEXT,
+    ne_faturamento TEXT,
+    processo_sei_pagamento TEXT,
     criado_em TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     FOREIGN KEY (projeto_id) REFERENCES projetos (id) ON DELETE RESTRICT
 );
@@ -440,7 +452,7 @@ CREATE TABLE alocacoes_perfil_os (
     criado_em TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     FOREIGN KEY (ordem_servico_id) REFERENCES ordens_servico (id) ON DELETE CASCADE,
     FOREIGN KEY (perfil_contratado_id) REFERENCES perfis_contratados (id) ON DELETE RESTRICT,
-    UNIQUE (ordem_servico_id, perfil_contratado_id, mes_referencia)
+    UNIQUE (ordem_servico_id, nome_profissional, mes_referencia)
 );
 
 -- Trigger SQLite para preenchimento e cálculo automático
@@ -482,12 +494,12 @@ VALUES
 
 -- 3. Inserção de Ordens de Serviço (1:N)
 INSERT INTO ordens_servico 
-(projeto_id, numero_os, ano_referencia, alocacao_sgc, entrega_sgc, descricao_sgc, situacao_sgc, situacao_passivo_2026)
+(projeto_id, numero_os, ano_referencia, alocacao_sgc, entrega_sgc, descricao_sgc, situacao_sgc, situacao_passivo_2026, ne_planejamento, ne_faturamento, processo_sei_pagamento)
 VALUES
-(1, 101, 2026, TRUE, TRUE, TRUE, 'Atestada pelo Fiscal', 'Liquidado'),
-(1, 102, 2026, TRUE, TRUE, FALSE, 'Em Execução', 'A Empenhar'),
-(2, 201, 2026, TRUE, FALSE, TRUE, 'Em Validação SGC', 'Passivo Reconhecido'),
-(3, 301, 2026, FALSE, FALSE, FALSE, 'Planejada', 'Sem Passivo');
+(1, 101, 2026, TRUE, TRUE, TRUE, 'Atestada pelo Fiscal', 'Liquidado', '2026NE000142', '2026NE000189', 'SEI-00045/2026'),
+(1, 102, 2026, TRUE, TRUE, FALSE, 'Em Execução', 'A Empenhar', '2026NE000215', NULL, NULL),
+(2, 201, 2026, TRUE, FALSE, TRUE, 'Em Validação SGC', 'Passivo Reconhecido', '2026NE000301', '2026NE000301', 'SEI-00120/2026'),
+(3, 301, 2026, FALSE, FALSE, FALSE, 'Planejada', 'Sem Passivo', NULL, NULL, NULL);
 
 -- 4. Inserção de Alocações (N:N com snapshot e regra de cálculo acionada via trigger ou manual)
 -- Observação: com o Trigger ativo, basta informar ordem_servico_id, perfil_contratado_id, mes_referencia, nome_profissional e percentual_alocacao!
@@ -512,6 +524,9 @@ SELECT
     p.sigla_projeto AS projeto,
     os.numero_os,
     os.ano_referencia,
+    os.ne_planejamento,
+    os.ne_faturamento,
+    os.processo_sei_pagamento,
     STRING_AGG(DISTINCT a.mes_referencia, ', ') AS meses_alocados,
     os.situacao_sgc,
     os.situacao_passivo_2026,
@@ -523,13 +538,17 @@ JOIN projetos p ON p.id = os.projeto_id
 LEFT JOIN alocacoes_perfil_os a ON a.ordem_servico_id = os.id
 GROUP BY 
     p.sigla_secretaria, p.sigla_projeto, os.id, os.numero_os, 
-    os.ano_referencia, os.situacao_sgc, os.situacao_passivo_2026
+    os.ano_referencia, os.ne_planejamento, os.ne_faturamento, 
+    os.processo_sei_pagamento, os.situacao_sgc, os.situacao_passivo_2026
 ORDER BY p.sigla_secretaria, os.ano_referencia DESC, os.numero_os ASC;
 
 
 -- 2. Detalhamento de Equipe e Histórico Contratual por Ordem de Serviço
 SELECT 
     os.numero_os,
+    os.ne_planejamento,
+    os.ne_faturamento,
+    os.processo_sei_pagamento,
     a.mes_referencia || '/' || os.ano_referencia AS periodo,
     p.sigla_projeto,
     a.nome_profissional,

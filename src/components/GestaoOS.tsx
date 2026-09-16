@@ -54,6 +54,9 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
         mesesAloc.some((m) => m.includes(searchLower)) ||
         os.situacao_sgc.toLowerCase().includes(searchLower) ||
         os.situacao_passivo_2026.toLowerCase().includes(searchLower) ||
+        (os.ne_planejamento && os.ne_planejamento.toLowerCase().includes(searchLower)) ||
+        (os.ne_faturamento && os.ne_faturamento.toLowerCase().includes(searchLower)) ||
+        (os.processo_sei_pagamento && os.processo_sei_pagamento.toLowerCase().includes(searchLower)) ||
         projeto?.nome_projeto.toLowerCase().includes(searchLower) ||
         projeto?.sigla_projeto.toLowerCase().includes(searchLower) ||
         projeto?.sigla_secretaria.toLowerCase().includes(searchLower);
@@ -462,12 +465,13 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
               <thead className="table-light">
                 <tr>
                   <th style={{ width: '130px' }}>OS / Referência</th>
-                  <th style={{ width: '28%' }}>Projeto Vinculado</th>
+                  <th style={{ width: '22%' }}>Projeto Vinculado</th>
+                  <th style={{ width: '180px' }}>Empenho & Pagamento</th>
                   <th style={{ width: '130px' }}>Indicadores SGC</th>
                   <th>Situação SGC</th>
                   <th>Passivo 2026</th>
-                  <th className="text-center" style={{ width: '120px' }}>Alocações</th>
-                  <th className="text-end" style={{ width: '160px' }}>
+                  <th className="text-center" style={{ width: '100px' }}>Alocações</th>
+                  <th className="text-end" style={{ width: '150px' }}>
                     Valor Total da OS
                   </th>
                   <th className="text-center" style={{ width: '150px' }}>Ações</th>
@@ -513,6 +517,42 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
                           <span className="badge bg-light text-muted border">
                             {projeto?.sigla_secretaria}
                           </span>
+                        </div>
+                      </td>
+
+                      {/* Empenho & Pagamento (NEs e SEI da OS) */}
+                      <td>
+                        <div className="d-flex flex-column gap-1 small">
+                          {os.ne_planejamento ? (
+                            <div className="text-truncate" title={`NE Planejamento: ${os.ne_planejamento}`}>
+                              <span className="text-muted" style={{ fontSize: '10px' }}>NE Plan: </span>
+                              <span className="badge bg-light text-dark border font-monospace" style={{ fontSize: '11px' }}>
+                                <i className="bi bi-file-earmark-ruled me-1 text-primary"></i>
+                                {os.ne_planejamento}
+                              </span>
+                            </div>
+                          ) : null}
+                          {os.ne_faturamento ? (
+                            <div className="text-truncate" title={`NE Faturamento: ${os.ne_faturamento}`}>
+                              <span className="text-muted" style={{ fontSize: '10px' }}>NE Fat: </span>
+                              <span className="badge bg-success-subtle text-success-emphasis border border-success-subtle font-monospace" style={{ fontSize: '11px' }}>
+                                <i className="bi bi-receipt me-1"></i>
+                                {os.ne_faturamento}
+                              </span>
+                            </div>
+                          ) : null}
+                          {os.processo_sei_pagamento ? (
+                            <div className="text-truncate" title={`Processo SEI Pagamento: ${os.processo_sei_pagamento}`}>
+                              <span className="text-muted" style={{ fontSize: '10px' }}>SEI: </span>
+                              <span className="badge bg-info-subtle text-info-emphasis border border-info-subtle font-monospace" style={{ fontSize: '11px' }}>
+                                <i className="bi bi-folder2-open me-1"></i>
+                                {os.processo_sei_pagamento}
+                              </span>
+                            </div>
+                          ) : null}
+                          {!os.ne_planejamento && !os.ne_faturamento && !os.processo_sei_pagamento && (
+                            <span className="text-muted small">—</span>
+                          )}
                         </div>
                       </td>
 

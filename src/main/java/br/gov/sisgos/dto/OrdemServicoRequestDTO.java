@@ -28,4 +28,7 @@ public class OrdemServicoRequestDTO {
     private Boolean descricaoSgc = false;
     private String situacaoSgc;
     private String situacaoPassivo2026;
+    private String nePlanejamento;
+    private String neFaturamento;
+    private String processoSeiPagamento;
 }

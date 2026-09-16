@@ -23,6 +23,9 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
   const [descricaoSgc, setDescricaoSgc] = useState<boolean>(false);
   const [situacaoSgc, setSituacaoSgc] = useState<string>('Em Elaboração');
   const [situacaoPassivo2026, setSituacaoPassivo2026] = useState<string>('Sem Passivo');
+  const [nePlanejamento, setNePlanejamento] = useState<string>('');
+  const [neFaturamento, setNeFaturamento] = useState<string>('');
+  const [processoSeiPagamento, setProcessoSeiPagamento] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   useEffect(() => {
@@ -35,6 +38,9 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
       setDescricaoSgc(editingOs.descricao_sgc);
       setSituacaoSgc(editingOs.situacao_sgc);
       setSituacaoPassivo2026(editingOs.situacao_passivo_2026);
+      setNePlanejamento(editingOs.ne_planejamento || '');
+      setNeFaturamento(editingOs.ne_faturamento || '');
+      setProcessoSeiPagamento(editingOs.processo_sei_pagamento || '');
     } else {
       setProjetoId(projetos.length > 0 ? projetos[0].id : '');
       setNumeroOs('');
@@ -44,6 +50,9 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
       setDescricaoSgc(false);
       setSituacaoSgc('Em Elaboração');
       setSituacaoPassivo2026('Sem Passivo');
+      setNePlanejamento('');
+      setNeFaturamento('');
+      setProcessoSeiPagamento('');
     }
     setErrorMsg('');
   }, [editingOs, isOpen, projetos]);
@@ -76,6 +85,9 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
           descricao_sgc: descricaoSgc,
           situacao_sgc: situacaoSgc,
           situacao_passivo_2026: situacaoPassivo2026,
+          ne_planejamento: nePlanejamento.trim() || null,
+          ne_faturamento: neFaturamento.trim() || null,
+          processo_sei_pagamento: processoSeiPagamento.trim() || null,
         });
       } else {
         addOrdemServico({
@@ -87,6 +99,9 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
           descricao_sgc: descricaoSgc,
           situacao_sgc: situacaoSgc,
           situacao_passivo_2026: situacaoPassivo2026,
+          ne_planejamento: nePlanejamento.trim() || null,
+          ne_faturamento: neFaturamento.trim() || null,
+          processo_sei_pagamento: processoSeiPagamento.trim() || null,
         });
       }
       onClose();
@@ -263,6 +278,60 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
                     <option value="Liquidado">Liquidado</option>
                     <option value="Pago">Pago</option>
                   </select>
+                </div>
+
+                {/* Notas de Empenho (NE) e Processo SEI */}
+                <div className="col-12">
+                  <hr className="my-2" />
+                  <h6 className="fw-bold text-secondary mb-2">
+                    <i className="bi bi-receipt me-1"></i>
+                    Empenho e Processo de Pagamento
+                  </h6>
+                </div>
+
+                {/* NE no Planejamento */}
+                <div className="col-md-4">
+                  <label className="form-label fw-semibold">
+                    NE no Planejamento
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Ex: 2026NE000142"
+                    value={nePlanejamento}
+                    onChange={(e) => setNePlanejamento(e.target.value)}
+                  />
+                  <div className="form-text small">Nota de empenho prevista.</div>
+                </div>
+
+                {/* NE no Faturamento */}
+                <div className="col-md-4">
+                  <label className="form-label fw-semibold">
+                    NE no Faturamento
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Ex: 2026NE000189"
+                    value={neFaturamento}
+                    onChange={(e) => setNeFaturamento(e.target.value)}
+                  />
+                  <div className="form-text small">Nota de empenho executada.</div>
+                </div>
+
+                {/* Processo SEI Pagamento */}
+                <div className="col-md-4">
+                  <label className="form-label fw-semibold">
+                    Processo SEI Pagamento
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Ex: 08001.002341/2026-12"
+                    value={processoSeiPagamento}
+                    onChange={(e) => setProcessoSeiPagamento(e.target.value)}
+                  />
+                  <div className="form-text small">Número do processo SEI (opcional).</div>
                 </div>
               </div>
             </div>

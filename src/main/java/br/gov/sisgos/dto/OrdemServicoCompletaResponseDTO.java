@@ -24,6 +24,9 @@ public class OrdemServicoCompletaResponseDTO {
     private Boolean descricaoSgc;
     private String situacaoSgc;
     private String situacaoPassivo2026;
+    private String nePlanejamento;
+    private String neFaturamento;
+    private String processoSeiPagamento;
     private OffsetDateTime criadoEm;
     private Long projetoId;
     private ProjetoDTO projeto;
@@ -86,6 +89,9 @@ public class OrdemServicoCompletaResponseDTO {
                 .descricaoSgc(entity.getDescricaoSgc())
                 .situacaoSgc(entity.getSituacaoSgc())
                 .situacaoPassivo2026(entity.getSituacaoPassivo2026())
+                .nePlanejamento(entity.getNePlanejamento())
+                .neFaturamento(entity.getNeFaturamento())
+                .processoSeiPagamento(entity.getProcessoSeiPagamento())
                 .criadoEm(entity.getCriadoEm())
                 .projetoId(entity.getProjeto() != null ? entity.getProjeto().getId() : null)
                 .projeto(ProjetoDTO.fromEntity(entity.getProjeto()))
