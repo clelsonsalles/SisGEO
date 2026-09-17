@@ -1,6 +1,6 @@
 {
   "name": "SisGOS - Sistema de Gestão de Ordens de Serviço",
-  "description": "Sistema Full-Stack de Gestão de Ordens de Serviço com frontend Bootstrap 5, backend Spring Boot Java RESTful, banco PostgreSQL e controle de alocação de perfis.",
+  "description": "Sistema Full-Stack de Gestão de Ordens de Serviço com frontend Bootstrap 5, backend Spring Boot Java RESTful, banco PostgreSQL, controle de alocação de perfis e Dashboard Analítico com módulos estratégicos.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
