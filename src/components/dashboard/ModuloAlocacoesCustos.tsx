@@ -4,6 +4,7 @@ import { useSisgos } from '../../context/SisgosContext';
 import { formatCurrency, formatNumber, formatPercent } from '../../utils/formatters';
 import { MESES_REFERENCIA, MesReferencia } from '../../types/models';
 import { ActiveTab } from '../Navbar';
+import { FiltroMultiplaSelecao, OpcaoFiltro } from './FiltroMultiplaSelecao';
 
 Chart.register(...registerables);
 
@@ -26,14 +27,14 @@ export const ModuloAlocacoesCustos: React.FC<ModuloAlocacoesCustosProps> = ({
   const barChartInstance = useRef<Chart | null>(null);
   const pieChartInstance = useRef<Chart | null>(null);
 
-  // Filter States
-  const [filtroNumeroOs, setFiltroNumeroOs] = useState<string>('TODOS');
-  const [filtroProjeto, setFiltroProjeto] = useState<string>('TODOS');
-  const [filtroAno, setFiltroAno] = useState<string>('TODOS');
-  const [filtroMes, setFiltroMes] = useState<string>('TODOS');
-  const [filtroPerfil, setFiltroPerfil] = useState<string>('TODOS');
-  const [filtroUnidadeProjeto, setFiltroUnidadeProjeto] = useState<string>('TODOS');
-  const [filtroSecretaria, setFiltroSecretaria] = useState<string>('TODOS');
+  // Filter States com MÚLTIPLA SELEÇÃO
+  const [filtroNumeroOss, setFiltroNumeroOss] = useState<string[]>([]);
+  const [filtroProjetos, setFiltroProjetos] = useState<string[]>([]);
+  const [filtroAnos, setFiltroAnos] = useState<string[]>([]);
+  const [filtroMeses, setFiltroMeses] = useState<string[]>([]);
+  const [filtroPerfis, setFiltroPerfis] = useState<string[]>([]);
+  const [filtroUnidades, setFiltroUnidades] = useState<string[]>([]);
+  const [filtroSecretarias, setFiltroSecretarias] = useState<string[]>([]);
 
   // Distribution chart metric switch: 'perfil' | 'os' | 'secretaria'
   const [pieAgrupamento, setPieAgrupamento] = useState<'perfil' | 'os' | 'secretaria'>('perfil');
@@ -42,25 +43,66 @@ export const ModuloAlocacoesCustos: React.FC<ModuloAlocacoesCustosProps> = ({
   // Table search
   const [termoBuscaTabela, setTermoBuscaTabela] = useState<string>('');
 
-  // 1. Dynamic lists for filter selects
-  const listaNumerosOs = useMemo(() => {
-    return Array.from(new Set(ordensServico.map((os) => os.numero_os))).sort((a, b) => a - b);
+  // 1. Dynamic lists and options for multi-select filters
+  const opcoesNumerosOs: OpcaoFiltro[] = useMemo(() => {
+    return Array.from(new Set(ordensServico.map((os) => os.numero_os)))
+      .sort((a, b) => a - b)
+      .map((num) => ({
+        value: String(num),
+        label: `OS #${num}`,
+      }));
   }, [ordensServico]);
 
-  const listaAnos = useMemo(() => {
-    return Array.from(new Set(ordensServico.map((os) => os.ano_referencia))).sort((a, b) => b - a);
-  }, [ordensServico]);
-
-  const listaUnidadesProjetos = useMemo(() => {
-    return Array.from(new Set(projetos.map((p) => p.sigla_projeto))).sort();
+  const opcoesProjetos: OpcaoFiltro[] = useMemo(() => {
+    return projetos.map((p) => ({
+      value: String(p.id),
+      label: p.sigla_projeto,
+      sublabel: p.nome_projeto,
+    }));
   }, [projetos]);
 
-  const listaSecretarias = useMemo(() => {
+  const opcoesAnos: OpcaoFiltro[] = useMemo(() => {
+    return Array.from(new Set(ordensServico.map((os) => os.ano_referencia)))
+      .sort((a, b) => b - a)
+      .map((ano) => ({
+        value: String(ano),
+        label: String(ano),
+      }));
+  }, [ordensServico]);
+
+  const opcoesMeses: OpcaoFiltro[] = useMemo(() => {
+    return MESES_REFERENCIA.map((mes) => ({
+      value: mes,
+      label: mes,
+    }));
+  }, []);
+
+  const opcoesPerfis: OpcaoFiltro[] = useMemo(() => {
+    return perfis.map((p) => ({
+      value: String(p.id),
+      label: p.nome_perfil,
+    }));
+  }, [perfis]);
+
+  const opcoesUnidades: OpcaoFiltro[] = useMemo(() => {
+    return Array.from(new Set(projetos.map((p) => p.sigla_projeto)))
+      .sort()
+      .map((sigla) => ({
+        value: sigla,
+        label: sigla,
+      }));
+  }, [projetos]);
+
+  const opcoesSecretarias: OpcaoFiltro[] = useMemo(() => {
     const secMap = new Map<string, string>();
     projetos.forEach((p) => {
       secMap.set(p.sigla_secretaria, p.nome_secretaria);
     });
-    return Array.from(secMap.entries()).map(([sigla, nome]) => ({ sigla, nome }));
+    return Array.from(secMap.entries()).map(([sigla, nome]) => ({
+      value: sigla,
+      label: sigla,
+      sublabel: nome,
+    }));
   }, [projetos]);
 
   // 2. Joined Allocations with OS and Project info
@@ -121,24 +163,24 @@ export const ModuloAlocacoesCustos: React.FC<ModuloAlocacoesCustosProps> = ({
   // Apply Top Filter Panel
   const alocacoesFiltradas = useMemo(() => {
     return alocacoesEnriquecidas.filter((item) => {
-      if (filtroNumeroOs !== 'TODOS' && String(item.numero_os) !== filtroNumeroOs) return false;
-      if (filtroProjeto !== 'TODOS' && String(item.projeto_id) !== filtroProjeto) return false;
-      if (filtroAno !== 'TODOS' && String(item.ano_referencia) !== filtroAno) return false;
-      if (filtroMes !== 'TODOS' && item.mes_referencia !== filtroMes) return false;
-      if (filtroPerfil !== 'TODOS' && String(item.perfil_contratado_id) !== filtroPerfil) return false;
-      if (filtroUnidadeProjeto !== 'TODOS' && item.sigla_projeto !== filtroUnidadeProjeto) return false;
-      if (filtroSecretaria !== 'TODOS' && item.sigla_secretaria !== filtroSecretaria) return false;
+      if (filtroNumeroOss.length > 0 && !filtroNumeroOss.includes(String(item.numero_os))) return false;
+      if (filtroProjetos.length > 0 && !filtroProjetos.includes(String(item.projeto_id))) return false;
+      if (filtroAnos.length > 0 && !filtroAnos.includes(String(item.ano_referencia))) return false;
+      if (filtroMeses.length > 0 && !filtroMeses.includes(item.mes_referencia)) return false;
+      if (filtroPerfis.length > 0 && !filtroPerfis.includes(String(item.perfil_contratado_id))) return false;
+      if (filtroUnidades.length > 0 && !filtroUnidades.includes(item.sigla_projeto)) return false;
+      if (filtroSecretarias.length > 0 && !filtroSecretarias.includes(item.sigla_secretaria)) return false;
       return true;
     });
   }, [
     alocacoesEnriquecidas,
-    filtroNumeroOs,
-    filtroProjeto,
-    filtroAno,
-    filtroMes,
-    filtroPerfil,
-    filtroUnidadeProjeto,
-    filtroSecretaria,
+    filtroNumeroOss,
+    filtroProjetos,
+    filtroAnos,
+    filtroMeses,
+    filtroPerfis,
+    filtroUnidades,
+    filtroSecretarias,
   ]);
 
   const ordensServicoFiltradas = useMemo(() => {
@@ -164,29 +206,29 @@ export const ModuloAlocacoesCustos: React.FC<ModuloAlocacoesCustosProps> = ({
   }, [totalValorConsolidado, totalOrdensFiltradasCount]);
 
   const valorOsSelecionada = useMemo(() => {
-    if (filtroNumeroOs === 'TODOS') return null;
+    if (filtroNumeroOss.length === 0) return null;
     return totalValorConsolidado;
-  }, [filtroNumeroOs, totalValorConsolidado]);
+  }, [filtroNumeroOss, totalValorConsolidado]);
 
   const handleLimparFiltros = () => {
-    setFiltroNumeroOs('TODOS');
-    setFiltroProjeto('TODOS');
-    setFiltroAno('TODOS');
-    setFiltroMes('TODOS');
-    setFiltroPerfil('TODOS');
-    setFiltroUnidadeProjeto('TODOS');
-    setFiltroSecretaria('TODOS');
+    setFiltroNumeroOss([]);
+    setFiltroProjetos([]);
+    setFiltroAnos([]);
+    setFiltroMeses([]);
+    setFiltroPerfis([]);
+    setFiltroUnidades([]);
+    setFiltroSecretarias([]);
     setTermoBuscaTabela('');
   };
 
   const isFiltroAtivo =
-    filtroNumeroOs !== 'TODOS' ||
-    filtroProjeto !== 'TODOS' ||
-    filtroAno !== 'TODOS' ||
-    filtroMes !== 'TODOS' ||
-    filtroPerfil !== 'TODOS' ||
-    filtroUnidadeProjeto !== 'TODOS' ||
-    filtroSecretaria !== 'TODOS';
+    filtroNumeroOss.length > 0 ||
+    filtroProjetos.length > 0 ||
+    filtroAnos.length > 0 ||
+    filtroMeses.length > 0 ||
+    filtroPerfis.length > 0 ||
+    filtroUnidades.length > 0 ||
+    filtroSecretarias.length > 0;
 
   // 4. Data for Gráfico 1 (Bar Chart: Quantidade de perfis alocados por Perfil)
   const barChartData = useMemo(() => {
@@ -198,11 +240,11 @@ export const ModuloAlocacoesCustos: React.FC<ModuloAlocacoesCustosProps> = ({
       profileCounts[aloc.nome_perfil] = (profileCounts[aloc.nome_perfil] || 0) + 1;
     });
     const labels = Object.keys(profileCounts).filter(
-      (name) => filtroPerfil === 'TODOS' || profileCounts[name] > 0
+      (name) => filtroPerfis.length === 0 || profileCounts[name] > 0
     );
     const data = labels.map((l) => profileCounts[l]);
     return { labels, data };
-  }, [alocacoesFiltradas, perfis, filtroPerfil]);
+  }, [alocacoesFiltradas, perfis, filtroPerfis]);
 
   // 5. Data for Gráfico 2 (Doughnut / Pie: Distribuição dos valores totais R$)
   const pieChartData = useMemo(() => {
@@ -541,135 +583,86 @@ export const ModuloAlocacoesCustos: React.FC<ModuloAlocacoesCustosProps> = ({
           <div className="row g-3">
             {/* 1. Número da OS */}
             <div className="col-12 col-sm-6 col-md-4 col-xl">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Número da OS
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroNumeroOs}
-                onChange={(e) => setFiltroNumeroOs(e.target.value)}
-              >
-                <option value="TODOS">Todas as OSs</option>
-                {listaNumerosOs.map((num) => (
-                  <option key={num} value={String(num)}>
-                    OS #{num}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Número da OS"
+                icone="bi-hash"
+                placeholder="Todas as OSs"
+                opcoes={opcoesNumerosOs}
+                selecionados={filtroNumeroOss}
+                onSelectionChange={setFiltroNumeroOss}
+              />
             </div>
 
             {/* 2. Projeto */}
             <div className="col-12 col-sm-6 col-md-4 col-xl">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Projeto
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroProjeto}
-                onChange={(e) => setFiltroProjeto(e.target.value)}
-              >
-                <option value="TODOS">Todos os Projetos</option>
-                {projetos.map((p) => (
-                  <option key={p.id} value={String(p.id)}>
-                    {p.sigla_projeto} - {p.nome_projeto.length > 25 ? p.nome_projeto.substring(0, 25) + '...' : p.nome_projeto}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Projeto"
+                icone="bi-diagram-3"
+                placeholder="Todos os Projetos"
+                opcoes={opcoesProjetos}
+                selecionados={filtroProjetos}
+                onSelectionChange={setFiltroProjetos}
+              />
             </div>
 
             {/* 3. Ano de Referência */}
             <div className="col-12 col-sm-6 col-md-4 col-xl">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Ano de Referência
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroAno}
-                onChange={(e) => setFiltroAno(e.target.value)}
-              >
-                <option value="TODOS">Todos os Anos</option>
-                {listaAnos.map((ano) => (
-                  <option key={ano} value={String(ano)}>
-                    {ano}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Ano de Referência"
+                icone="bi-calendar-event"
+                placeholder="Todos os Anos"
+                opcoes={opcoesAnos}
+                selecionados={filtroAnos}
+                onSelectionChange={setFiltroAnos}
+              />
             </div>
 
             {/* 4. Mês de Referência */}
             <div className="col-12 col-sm-6 col-md-4 col-xl">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Mês de Referência
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroMes}
-                onChange={(e) => setFiltroMes(e.target.value)}
-              >
-                <option value="TODOS">Todos os Meses</option>
-                {MESES_REFERENCIA.map((mes) => (
-                  <option key={mes} value={mes}>
-                    {mes}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Mês de Referência"
+                icone="bi-calendar3"
+                placeholder="Todos os Meses"
+                opcoes={opcoesMeses}
+                selecionados={filtroMeses}
+                onSelectionChange={setFiltroMeses}
+              />
             </div>
 
             {/* 5. Perfil Profissional */}
             <div className="col-12 col-sm-6 col-md-4 col-xl">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Perfil Profissional
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroPerfil}
-                onChange={(e) => setFiltroPerfil(e.target.value)}
-              >
-                <option value="TODOS">Todos os Perfis</option>
-                {perfis.map((p) => (
-                  <option key={p.id} value={String(p.id)}>
-                    {p.nome_perfil}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Perfil Profissional"
+                icone="bi-person-badge"
+                placeholder="Todos os Perfis"
+                opcoes={opcoesPerfis}
+                selecionados={filtroPerfis}
+                onSelectionChange={setFiltroPerfis}
+              />
             </div>
 
             {/* 6. Unidade do Projeto */}
             <div className="col-12 col-sm-6 col-md-4 col-xl">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Unidade do Projeto
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroUnidadeProjeto}
-                onChange={(e) => setFiltroUnidadeProjeto(e.target.value)}
-              >
-                <option value="TODOS">Todas as Unidades</option>
-                {listaUnidadesProjetos.map((sigla) => (
-                  <option key={sigla} value={sigla}>
-                    {sigla}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Unidade do Projeto"
+                icone="bi-folder2-open"
+                placeholder="Todas as Unidades"
+                opcoes={opcoesUnidades}
+                selecionados={filtroUnidades}
+                onSelectionChange={setFiltroUnidades}
+              />
             </div>
 
             {/* 7. Secretaria Finalística */}
             <div className="col-12 col-sm-6 col-md-4 col-xl">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Secretaria Finalística
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroSecretaria}
-                onChange={(e) => setFiltroSecretaria(e.target.value)}
-              >
-                <option value="TODOS">Todas as Secretarias</option>
-                {listaSecretarias.map(({ sigla, nome }) => (
-                  <option key={sigla} value={sigla}>
-                    {sigla} ({nome})
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Secretaria Finalística"
+                icone="bi-building"
+                placeholder="Todas as Secretarias"
+                opcoes={opcoesSecretarias}
+                selecionados={filtroSecretarias}
+                onSelectionChange={setFiltroSecretarias}
+              />
             </div>
           </div>
         </div>
@@ -764,7 +757,11 @@ export const ModuloAlocacoesCustos: React.FC<ModuloAlocacoesCustosProps> = ({
               <div className="d-flex justify-content-between align-items-center">
                 <div>
                   <span className="text-muted small fw-semibold text-uppercase">
-                    {valorOsSelecionada !== null ? `Valor da OS #${filtroNumeroOs}` : 'Média por OS'}
+                    {filtroNumeroOss.length === 1
+                      ? `Valor da OS #${filtroNumeroOss[0]}`
+                      : filtroNumeroOss.length > 1
+                      ? `Valor das ${filtroNumeroOss.length} OSs`
+                      : 'Média por OS'}
                   </span>
                   <h3 className="fw-bold text-dark mb-0 mt-1 font-monospace">
                     {formatCurrency(valorOsSelecionada !== null ? valorOsSelecionada : mediaValorPorOs)}

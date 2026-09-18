@@ -3,6 +3,7 @@ import { Chart, registerables } from 'chart.js';
 import { useSisgos } from '../../context/SisgosContext';
 import { formatCurrency, formatNumber, formatPercent } from '../../utils/formatters';
 import { MESES_REFERENCIA, MesReferencia } from '../../types/models';
+import { FiltroMultiplaSelecao, OpcaoFiltro } from './FiltroMultiplaSelecao';
 
 Chart.register(...registerables);
 
@@ -23,48 +24,85 @@ export const ModuloPerfisContratados: React.FC<ModuloPerfisContratadosProps> = (
   const perfilCostInstance = useRef<Chart | null>(null);
   const evolucaoMensalInstance = useRef<Chart | null>(null);
 
-  // Filtros
-  const [filtroProfissional, setFiltroProfissional] = useState<string>('TODOS');
-  const [filtroPerfil, setFiltroPerfil] = useState<string>('TODOS');
-  const [filtroMes, setFiltroMes] = useState<string>('TODOS');
-  const [filtroProjeto, setFiltroProjeto] = useState<string>('TODOS');
-  const [filtroSecretaria, setFiltroSecretaria] = useState<string>('TODOS');
+  // Filtros com MÚLTIPLA SELEÇÃO
+  const [filtroProfissionais, setFiltroProfissionais] = useState<string[]>([]);
+  const [filtroPerfis, setFiltroPerfis] = useState<string[]>([]);
+  const [filtroMeses, setFiltroMeses] = useState<string[]>([]);
+  const [filtroProjetos, setFiltroProjetos] = useState<string[]>([]);
+  const [filtroSecretarias, setFiltroSecretarias] = useState<string[]>([]);
 
   // Busca na tabela
   const [termoBuscaTabela, setTermoBuscaTabela] = useState<string>('');
 
-  // 1. Listas dinâmicas para selects de filtros
+  // 1. Listas e opções para filtros de múltipla seleção
   const listaProfissionais = useMemo(() => {
     const nomes = Array.from(
       new Set(alocacoes.map((a) => a.nome_profissional?.trim()).filter(Boolean))
-    ).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-    return nomes;
+    ).sort((a, b) => (a as string).localeCompare(b as string, 'pt-BR'));
+    return nomes as string[];
   }, [alocacoes]);
 
-  const listaSecretarias = useMemo(() => {
+  const opcoesProfissionais: OpcaoFiltro[] = useMemo(() => {
+    return listaProfissionais.map((nome) => ({
+      value: nome,
+      label: nome,
+    }));
+  }, [listaProfissionais]);
+
+  const opcoesPerfis: OpcaoFiltro[] = useMemo(() => {
+    return perfis.map((p) => ({
+      value: String(p.id),
+      label: p.nome_perfil,
+    }));
+  }, [perfis]);
+
+  const opcoesMeses: OpcaoFiltro[] = useMemo(() => {
+    return MESES_REFERENCIA.map((mes) => ({
+      value: mes,
+      label: mes,
+    }));
+  }, []);
+
+  const opcoesProjetos: OpcaoFiltro[] = useMemo(() => {
+    return projetos.map((p) => ({
+      value: String(p.id),
+      label: p.sigla_projeto,
+      sublabel: p.nome_projeto,
+    }));
+  }, [projetos]);
+
+  const opcoesSecretarias: OpcaoFiltro[] = useMemo(() => {
     const secMap = new Map<string, string>();
     projetos.forEach((p) => {
       secMap.set(p.sigla_secretaria.trim().toUpperCase(), p.nome_secretaria.trim());
     });
-    return Array.from(secMap.entries()).map(([sigla, nome]) => ({ sigla, nome }));
+    return Array.from(secMap.entries()).map(([sigla, nome]) => ({
+      value: sigla,
+      label: sigla,
+      sublabel: nome,
+    }));
   }, [projetos]);
 
   // Limpar filtros
   const handleLimparFiltros = () => {
-    setFiltroProfissional('TODOS');
-    setFiltroPerfil('TODOS');
-    setFiltroMes('TODOS');
-    setFiltroProjeto('TODOS');
-    setFiltroSecretaria('TODOS');
+    setFiltroProfissionais([]);
+    setFiltroPerfis([]);
+    setFiltroMeses([]);
+    setFiltroProjetos([]);
+    setFiltroSecretarias([]);
     setTermoBuscaTabela('');
   };
 
   const isFiltroAtivo =
-    filtroProfissional !== 'TODOS' ||
-    filtroPerfil !== 'TODOS' ||
-    filtroMes !== 'TODOS' ||
-    filtroProjeto !== 'TODOS' ||
-    filtroSecretaria !== 'TODOS';
+    filtroProfissionais.length > 0 ||
+    filtroPerfis.length > 0 ||
+    filtroMeses.length > 0 ||
+    filtroProjetos.length > 0 ||
+    filtroSecretarias.length > 0;
+
+  // Profissional individualmente selecionado para visão 360
+  const profissionalUnicoSelecionado =
+    filtroProfissionais.length === 1 ? filtroProfissionais[0] : null;
 
   // 2. Base enriquecida cruzando Alocação + Perfil + OS + Projeto
   interface ItemCruzado {
@@ -117,33 +155,44 @@ export const ModuloPerfisContratados: React.FC<ModuloPerfisContratadosProps> = (
     });
   }, [alocacoes, ordensServico, projetos, perfis]);
 
-  // 3. Aplicação dos Filtros
+  // 3. Aplicação dos Filtros com MÚLTIPLA SELEÇÃO
   const dadosFiltrados = useMemo(() => {
     return dadosCruzados.filter((item) => {
       if (
-        filtroProfissional !== 'TODOS' &&
-        item.nome_profissional.trim().toLowerCase() !== filtroProfissional.trim().toLowerCase()
+        filtroProfissionais.length > 0 &&
+        !filtroProfissionais.some(
+          (p) => p.trim().toLowerCase() === item.nome_profissional.trim().toLowerCase()
+        )
       ) {
         return false;
       }
-      if (filtroPerfil !== 'TODOS' && String(item.perfil_contratado_id) !== filtroPerfil) {
-        return false;
-      }
-      if (filtroMes !== 'TODOS' && item.mes_referencia !== filtroMes) {
-        return false;
-      }
-      if (filtroProjeto !== 'TODOS' && String(item.projeto_id) !== filtroProjeto) {
+      if (
+        filtroPerfis.length > 0 &&
+        !filtroPerfis.includes(String(item.perfil_contratado_id))
+      ) {
         return false;
       }
       if (
-        filtroSecretaria !== 'TODOS' &&
-        item.sigla_secretaria.trim().toUpperCase() !== filtroSecretaria
+        filtroMeses.length > 0 &&
+        !filtroMeses.includes(item.mes_referencia)
+      ) {
+        return false;
+      }
+      if (
+        filtroProjetos.length > 0 &&
+        !filtroProjetos.includes(String(item.projeto_id))
+      ) {
+        return false;
+      }
+      if (
+        filtroSecretarias.length > 0 &&
+        !filtroSecretarias.includes(item.sigla_secretaria.trim().toUpperCase())
       ) {
         return false;
       }
       return true;
     });
-  }, [dadosCruzados, filtroProfissional, filtroPerfil, filtroMes, filtroProjeto, filtroSecretaria]);
+  }, [dadosCruzados, filtroProfissionais, filtroPerfis, filtroMeses, filtroProjetos, filtroSecretarias]);
 
   // 4. Indicadores de Destaque Obrigatórios
   // Indicador 1: Quantidade de Profissionais
@@ -400,7 +449,11 @@ export const ModuloPerfisContratados: React.FC<ModuloPerfisContratadosProps> = (
         datasets: [
           {
             type: 'bar',
-            label: filtroProfissional !== 'TODOS' ? `% Alocação de ${filtroProfissional}` : '% Alocação Consolidada',
+            label: profissionalUnicoSelecionado
+              ? `% Alocação de ${profissionalUnicoSelecionado}`
+              : filtroProfissionais.length > 1
+              ? `% Alocação dos ${filtroProfissionais.length} Profissionais Selecionados`
+              : '% Alocação Consolidada',
             data: dadosGraficoEvolucaoMensal.dataPercent,
             backgroundColor: '#0d6efdcc',
             borderColor: '#0d6efd',
@@ -466,7 +519,7 @@ export const ModuloPerfisContratados: React.FC<ModuloPerfisContratadosProps> = (
     return () => {
       if (evolucaoMensalInstance.current) evolucaoMensalInstance.current.destroy();
     };
-  }, [dadosGraficoEvolucaoMensal, filtroProfissional]);
+  }, [dadosGraficoEvolucaoMensal, profissionalUnicoSelecionado, filtroProfissionais]);
 
   // 9. Tabela final filtrada por busca textual
   const tabelaFinal = useMemo(() => {
@@ -597,98 +650,62 @@ export const ModuloPerfisContratados: React.FC<ModuloPerfisContratadosProps> = (
           <div className="row g-3">
             {/* Filtro Chave: Nome do Profissional */}
             <div className="col-12 col-sm-6 col-md-4 col-xl-3">
-              <label className="form-label small fw-bold text-primary mb-1 d-flex align-items-center gap-1">
-                <i className="bi bi-person-check-fill"></i>
-                Nome do Profissional (Filtro Chave)
-              </label>
-              <select
-                className="form-select form-select-sm border-primary shadow-none fw-semibold"
-                value={filtroProfissional}
-                onChange={(e) => setFiltroProfissional(e.target.value)}
-              >
-                <option value="TODOS">Todos os Profissionais</option>
-                {listaProfissionais.map((nome) => (
-                  <option key={nome} value={nome}>
-                    {nome}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Nome do Profissional (Filtro Chave)"
+                icone="bi-person-check-fill"
+                placeholder="Todos os Profissionais"
+                opcoes={opcoesProfissionais}
+                selecionados={filtroProfissionais}
+                onSelectionChange={setFiltroProfissionais}
+              />
             </div>
 
             {/* Filtro 2: Perfil Contratado */}
             <div className="col-12 col-sm-6 col-md-4 col-xl-3">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Perfil Contratado
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroPerfil}
-                onChange={(e) => setFiltroPerfil(e.target.value)}
-              >
-                <option value="TODOS">Todos os Perfis</option>
-                {perfis.map((p) => (
-                  <option key={p.id} value={String(p.id)}>
-                    {p.nome_perfil}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Perfil Contratado"
+                icone="bi-person-badge"
+                placeholder="Todos os Perfis"
+                opcoes={opcoesPerfis}
+                selecionados={filtroPerfis}
+                onSelectionChange={setFiltroPerfis}
+              />
             </div>
 
             {/* Filtro 3: Mês de Referência */}
             <div className="col-12 col-sm-6 col-md-4 col-xl-2">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Mês de Referência
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroMes}
-                onChange={(e) => setFiltroMes(e.target.value)}
-              >
-                <option value="TODOS">Todos os Meses</option>
-                {MESES_REFERENCIA.map((mes) => (
-                  <option key={mes} value={mes}>
-                    {mes}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Mês de Referência"
+                icone="bi-calendar3"
+                placeholder="Todos os Meses"
+                opcoes={opcoesMeses}
+                selecionados={filtroMeses}
+                onSelectionChange={setFiltroMeses}
+              />
             </div>
 
             {/* Filtro 4: Projeto */}
             <div className="col-12 col-sm-6 col-md-4 col-xl-2">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Projeto / Unidade
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroProjeto}
-                onChange={(e) => setFiltroProjeto(e.target.value)}
-              >
-                <option value="TODOS">Todos os Projetos</option>
-                {projetos.map((p) => (
-                  <option key={p.id} value={String(p.id)}>
-                    {p.sigla_projeto}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Projeto / Unidade"
+                icone="bi-diagram-3"
+                placeholder="Todos os Projetos"
+                opcoes={opcoesProjetos}
+                selecionados={filtroProjetos}
+                onSelectionChange={setFiltroProjetos}
+              />
             </div>
 
             {/* Filtro 5: Secretaria */}
             <div className="col-12 col-sm-6 col-md-4 col-xl-2">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Secretaria
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroSecretaria}
-                onChange={(e) => setFiltroSecretaria(e.target.value)}
-              >
-                <option value="TODOS">Todas as Secretarias</option>
-                {listaSecretarias.map(({ sigla, nome }) => (
-                  <option key={sigla} value={sigla}>
-                    {sigla} ({nome})
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Secretaria"
+                icone="bi-building"
+                placeholder="Todas as Secretarias"
+                opcoes={opcoesSecretarias}
+                selecionados={filtroSecretarias}
+                onSelectionChange={setFiltroSecretarias}
+              />
             </div>
           </div>
         </div>
@@ -781,10 +798,14 @@ export const ModuloPerfisContratados: React.FC<ModuloPerfisContratadosProps> = (
           <div>
             <span className="fw-bold text-dark fs-6 d-flex align-items-center gap-2">
               <i className="bi bi-calendar3-range-fill text-primary"></i>
-              {filtroProfissional !== 'TODOS' ? (
+              {profissionalUnicoSelecionado ? (
                 <>
                   Rastreamento Mensal do Profissional:{' '}
-                  <span className="text-primary">{filtroProfissional}</span>
+                  <span className="text-primary">{profissionalUnicoSelecionado}</span>
+                </>
+              ) : filtroProfissionais.length > 1 ? (
+                <>
+                  Matriz Comparativa dos Profissionais Selecionados ({filtroProfissionais.length})
                 </>
               ) : (
                 'Matriz Anual de Alocação Mensal por Profissional e Projetos'
@@ -795,11 +816,11 @@ export const ModuloPerfisContratados: React.FC<ModuloPerfisContratadosProps> = (
             </small>
           </div>
 
-          {filtroProfissional !== 'TODOS' && (
+          {filtroProfissionais.length > 0 && (
             <button
               type="button"
               className="btn btn-outline-secondary btn-sm"
-              onClick={() => setFiltroProfissional('TODOS')}
+              onClick={() => setFiltroProfissionais([])}
             >
               <i className="bi bi-x-circle me-1"></i>
               Ver Todos os Profissionais
@@ -808,7 +829,7 @@ export const ModuloPerfisContratados: React.FC<ModuloPerfisContratadosProps> = (
         </div>
 
         <div className="card-body p-3">
-          {filtroProfissional !== 'TODOS' ? (
+          {profissionalUnicoSelecionado ? (
             /* VISÃO ESPECÍFICA DO PROFISSIONAL SELECIONADO */
             <div>
               <div className="alert alert-primary-subtle border-primary-subtle d-flex flex-wrap align-items-center justify-content-between gap-3 p-3 mb-3 rounded-3">
@@ -817,7 +838,7 @@ export const ModuloPerfisContratados: React.FC<ModuloPerfisContratadosProps> = (
                     <i className="bi bi-person-badge fs-4"></i>
                   </div>
                   <div>
-                    <h5 className="fw-bold text-dark mb-0">{filtroProfissional}</h5>
+                    <h5 className="fw-bold text-dark mb-0">{profissionalUnicoSelecionado}</h5>
                     <small className="text-muted">
                       Perfis exercidos:{' '}
                       <strong>
@@ -955,7 +976,14 @@ export const ModuloPerfisContratados: React.FC<ModuloPerfisContratadosProps> = (
                   </tr>
                 </thead>
                 <tbody>
-                  {matrizTodosProfissionais.map((prof) => {
+                  {matrizTodosProfissionais
+                    .filter((prof) => {
+                      if (filtroProfissionais.length === 0) return true;
+                      return filtroProfissionais.some(
+                        (f) => f.trim().toLowerCase() === prof.nome.trim().toLowerCase()
+                      );
+                    })
+                    .map((prof) => {
                     return (
                       <tr key={prof.nome}>
                         <td className="text-start fw-bold text-dark">
@@ -1001,7 +1029,7 @@ export const ModuloPerfisContratados: React.FC<ModuloPerfisContratadosProps> = (
                           <button
                             type="button"
                             className="btn btn-outline-primary btn-sm py-0 px-2 text-xs"
-                            onClick={() => setFiltroProfissional(prof.nome)}
+                            onClick={() => setFiltroProfissionais([prof.nome])}
                             title={`Filtrar detalhes de ${prof.nome}`}
                           >
                             Filtrar
@@ -1192,7 +1220,7 @@ export const ModuloPerfisContratados: React.FC<ModuloPerfisContratadosProps> = (
                       <button
                         type="button"
                         className="btn btn-link p-0 text-dark fw-bold text-decoration-none text-start"
-                        onClick={() => setFiltroProfissional(item.nome_profissional)}
+                        onClick={() => setFiltroProfissionais([item.nome_profissional])}
                         title="Filtrar por este profissional"
                       >
                         {item.nome_profissional}

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useSisgos } from '../../context/SisgosContext';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
+import { FiltroMultiplaSelecao, OpcaoFiltro } from './FiltroMultiplaSelecao';
 
 Chart.register(...registerables);
 
@@ -22,12 +23,12 @@ export const ModuloProjetosUnidades: React.FC<ModuloProjetosUnidadesProps> = ({ 
   const osDoughnutInstance = useRef<Chart | null>(null);
   const equipeBarInstance = useRef<Chart | null>(null);
 
-  // Filtros
-  const [filtroSecretaria, setFiltroSecretaria] = useState<string>('TODOS');
-  const [filtroProjeto, setFiltroProjeto] = useState<string>('TODOS');
-  const [filtroAno, setFiltroAno] = useState<string>('TODOS');
-  const [filtroSituacaoSgc, setFiltroSituacaoSgc] = useState<string>('TODOS');
-  const [filtroSituacaoPassivo, setFiltroSituacaoPassivo] = useState<string>('TODOS');
+  // Filtros com MÚLTIPLA SELEÇÃO
+  const [filtroSecretarias, setFiltroSecretarias] = useState<string[]>([]);
+  const [filtroProjetos, setFiltroProjetos] = useState<string[]>([]);
+  const [filtroAnos, setFiltroAnos] = useState<string[]>([]);
+  const [filtroSituacoesSgc, setFiltroSituacoesSgc] = useState<string[]>([]);
+  const [filtroSituacoesPassivo, setFiltroSituacoesPassivo] = useState<string[]>([]);
 
   // Alternadores de visualização de gráficos
   const [agrupamentoCusto, setAgrupamentoCusto] = useState<'projeto' | 'secretaria'>('projeto');
@@ -36,60 +37,79 @@ export const ModuloProjetosUnidades: React.FC<ModuloProjetosUnidadesProps> = ({ 
   // Busca na tabela
   const [termoBusca, setTermoBusca] = useState<string>('');
 
-  // 1. Listas dinâmicas para selects de filtro
-  const listaSecretarias = useMemo(() => {
+  // 1. Opções dinâmicas para selects de filtro com múltipla seleção
+  const opcoesSecretarias: OpcaoFiltro[] = useMemo(() => {
     const secMap = new Map<string, string>();
     projetos.forEach((p) => {
       secMap.set(p.sigla_secretaria.trim().toUpperCase(), p.nome_secretaria.trim());
     });
-    return Array.from(secMap.entries()).map(([sigla, nome]) => ({ sigla, nome }));
+    return Array.from(secMap.entries()).map(([sigla, nome]) => ({
+      value: sigla,
+      label: sigla,
+      sublabel: nome,
+    }));
   }, [projetos]);
 
-  const listaProjetosOpcoes = useMemo(() => {
+  const opcoesProjetos: OpcaoFiltro[] = useMemo(() => {
     let projs = projetos;
-    if (filtroSecretaria !== 'TODOS') {
-      projs = projs.filter((p) => p.sigla_secretaria.trim().toUpperCase() === filtroSecretaria);
+    if (filtroSecretarias.length > 0) {
+      projs = projs.filter((p) => filtroSecretarias.includes(p.sigla_secretaria.trim().toUpperCase()));
     }
-    return projs;
-  }, [projetos, filtroSecretaria]);
+    return projs.map((p) => ({
+      value: String(p.id),
+      label: p.sigla_projeto || p.nome_projeto,
+      sublabel: p.sigla_secretaria,
+    }));
+  }, [projetos, filtroSecretarias]);
 
-  const listaAnos = useMemo(() => {
+  const opcoesAnos: OpcaoFiltro[] = useMemo(() => {
     const anos = Array.from(new Set(ordensServico.map((os) => os.ano_referencia))).sort((a, b) => b - a);
-    return anos;
+    return anos.map((ano) => ({
+      value: String(ano),
+      label: String(ano),
+    }));
   }, [ordensServico]);
 
-  const listaSituacoesSgc = useMemo(() => {
-    return Array.from(new Set(ordensServico.map((os) => os.situacao_sgc).filter(Boolean)));
+  const opcoesSituacoesSgc: OpcaoFiltro[] = useMemo(() => {
+    const situacoes = Array.from(new Set(ordensServico.map((os) => (os.situacao_sgc || '').trim()).filter(Boolean))).sort();
+    return situacoes.map((sit) => ({
+      value: sit,
+      label: sit,
+    }));
   }, [ordensServico]);
 
-  const listaSituacoesPassivo = useMemo(() => {
-    return Array.from(new Set(ordensServico.map((os) => os.situacao_passivo_2026).filter(Boolean)));
+  const opcoesSituacoesPassivo: OpcaoFiltro[] = useMemo(() => {
+    const situacoes = Array.from(new Set(ordensServico.map((os) => (os.situacao_passivo_2026 || '').trim()).filter(Boolean))).sort();
+    return situacoes.map((sit) => ({
+      value: sit,
+      label: sit,
+    }));
   }, [ordensServico]);
 
   const handleLimparFiltros = () => {
-    setFiltroSecretaria('TODOS');
-    setFiltroProjeto('TODOS');
-    setFiltroAno('TODOS');
-    setFiltroSituacaoSgc('TODOS');
-    setFiltroSituacaoPassivo('TODOS');
+    setFiltroSecretarias([]);
+    setFiltroProjetos([]);
+    setFiltroAnos([]);
+    setFiltroSituacoesSgc([]);
+    setFiltroSituacoesPassivo([]);
     setTermoBusca('');
   };
 
   const isFiltroAtivo =
-    filtroSecretaria !== 'TODOS' ||
-    filtroProjeto !== 'TODOS' ||
-    filtroAno !== 'TODOS' ||
-    filtroSituacaoSgc !== 'TODOS' ||
-    filtroSituacaoPassivo !== 'TODOS';
+    filtroSecretarias.length > 0 ||
+    filtroProjetos.length > 0 ||
+    filtroAnos.length > 0 ||
+    filtroSituacoesSgc.length > 0 ||
+    filtroSituacoesPassivo.length > 0;
 
   // 2. Filtragem e junção dos dados de Projetos, OSs e Alocações
   const dadosProjetosConsolidados = useMemo(() => {
     return projetos
       .filter((proj) => {
-        if (filtroSecretaria !== 'TODOS' && proj.sigla_secretaria.trim().toUpperCase() !== filtroSecretaria) {
+        if (filtroSecretarias.length > 0 && !filtroSecretarias.includes(proj.sigla_secretaria.trim().toUpperCase())) {
           return false;
         }
-        if (filtroProjeto !== 'TODOS' && String(proj.id) !== filtroProjeto) {
+        if (filtroProjetos.length > 0 && !filtroProjetos.includes(String(proj.id))) {
           return false;
         }
         return true;
@@ -98,9 +118,9 @@ export const ModuloProjetosUnidades: React.FC<ModuloProjetosUnidadesProps> = ({ 
         // OSs deste projeto que atendem aos filtros de OS
         const ossDoProjeto = ordensServico.filter((os) => {
           if (os.projeto_id !== proj.id) return false;
-          if (filtroAno !== 'TODOS' && String(os.ano_referencia) !== filtroAno) return false;
-          if (filtroSituacaoSgc !== 'TODOS' && os.situacao_sgc !== filtroSituacaoSgc) return false;
-          if (filtroSituacaoPassivo !== 'TODOS' && os.situacao_passivo_2026 !== filtroSituacaoPassivo) return false;
+          if (filtroAnos.length > 0 && !filtroAnos.includes(String(os.ano_referencia))) return false;
+          if (filtroSituacoesSgc.length > 0 && (!os.situacao_sgc || !filtroSituacoesSgc.includes(os.situacao_sgc))) return false;
+          if (filtroSituacoesPassivo.length > 0 && (!os.situacao_passivo_2026 || !filtroSituacoesPassivo.includes(os.situacao_passivo_2026))) return false;
           return true;
         });
 
@@ -131,12 +151,21 @@ export const ModuloProjetosUnidades: React.FC<ModuloProjetosUnidadesProps> = ({ 
       })
       // Se houver filtro de OS (ano ou situação), filtramos projetos que tenham OSs no escopo
       .filter((item) => {
-        if (filtroAno !== 'TODOS' || filtroSituacaoSgc !== 'TODOS' || filtroSituacaoPassivo !== 'TODOS') {
+        if (filtroAnos.length > 0 || filtroSituacoesSgc.length > 0 || filtroSituacoesPassivo.length > 0) {
           return item.qtd_oss > 0;
         }
         return true;
       });
-  }, [projetos, ordensServico, alocacoes, filtroSecretaria, filtroProjeto, filtroAno, filtroSituacaoSgc, filtroSituacaoPassivo]);
+  }, [
+    projetos,
+    ordensServico,
+    alocacoes,
+    filtroSecretarias,
+    filtroProjetos,
+    filtroAnos,
+    filtroSituacoesSgc,
+    filtroSituacoesPassivo,
+  ]);
 
   // 3. Indicadores de Destaque
   // Indicador 1: Quantidade de Projetos
@@ -516,102 +545,88 @@ export const ModuloProjetosUnidades: React.FC<ModuloProjetosUnidadesProps> = ({ 
           <div className="row g-3">
             {/* Filtro 1: Secretaria */}
             <div className="col-12 col-sm-6 col-md-4 col-xl">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Secretaria / Órgão
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroSecretaria}
-                onChange={(e) => {
-                  setFiltroSecretaria(e.target.value);
-                  setFiltroProjeto('TODOS');
+              <FiltroMultiplaSelecao
+                titulo="Secretaria / Órgão"
+                icone="bi-building"
+                placeholder="Todas as Secretarias"
+                opcoes={opcoesSecretarias}
+                selecionados={filtroSecretarias}
+                onSelectionChange={(selecionados) => {
+                  setFiltroSecretarias(selecionados);
+                  // Limpa projetos selecionados que não pertencem às novas secretarias (se houver filtro)
+                  if (selecionados.length > 0) {
+                    setFiltroProjetos((prev) =>
+                      prev.filter((projId) => {
+                        const proj = projetos.find((p) => String(p.id) === projId);
+                        return proj && selecionados.includes(proj.sigla_secretaria.trim().toUpperCase());
+                      })
+                    );
+                  }
                 }}
-              >
-                <option value="TODOS">Todas as Secretarias</option>
-                {listaSecretarias.map(({ sigla, nome }) => (
-                  <option key={sigla} value={sigla}>
-                    {sigla} - {nome}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             {/* Filtro 2: Projeto */}
             <div className="col-12 col-sm-6 col-md-4 col-xl">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Projeto / Unidade
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroProjeto}
-                onChange={(e) => setFiltroProjeto(e.target.value)}
-              >
-                <option value="TODOS">Todos os Projetos</option>
-                {listaProjetosOpcoes.map((p) => (
-                  <option key={p.id} value={String(p.id)}>
-                    {p.sigla_projeto} - {p.nome_projeto}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Projeto / Unidade"
+                icone="bi-diagram-3"
+                placeholder="Todos os Projetos"
+                opcoes={opcoesProjetos}
+                selecionados={filtroProjetos}
+                onSelectionChange={setFiltroProjetos}
+              />
             </div>
 
             {/* Filtro 3: Ano */}
             <div className="col-12 col-sm-6 col-md-4 col-xl">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Ano de Referência
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroAno}
-                onChange={(e) => setFiltroAno(e.target.value)}
-              >
-                <option value="TODOS">Todos os Anos</option>
-                {listaAnos.map((ano) => (
-                  <option key={ano} value={String(ano)}>
-                    {ano}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Ano de Referência"
+                icone="bi-calendar-event"
+                placeholder="Todos os Anos"
+                opcoes={opcoesAnos}
+                selecionados={filtroAnos}
+                onSelectionChange={setFiltroAnos}
+              />
             </div>
 
             {/* Filtro 4: Situação SGC */}
             <div className="col-12 col-sm-6 col-md-4 col-xl">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Situação SGC
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroSituacaoSgc}
-                onChange={(e) => setFiltroSituacaoSgc(e.target.value)}
-              >
-                <option value="TODOS">Todas as Situações</option>
-                {listaSituacoesSgc.map((sit) => (
-                  <option key={sit} value={sit}>
-                    {sit}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Situação SGC"
+                icone="bi-check2-circle"
+                placeholder="Todas as Situações"
+                opcoes={opcoesSituacoesSgc}
+                selecionados={filtroSituacoesSgc}
+                onSelectionChange={setFiltroSituacoesSgc}
+              />
             </div>
 
             {/* Filtro 5: Situação Passivo */}
             <div className="col-12 col-sm-6 col-md-4 col-xl">
-              <label className="form-label small fw-bold text-secondary mb-1">
-                Situação Passivo 2026
-              </label>
-              <select
-                className="form-select form-select-sm shadow-none"
-                value={filtroSituacaoPassivo}
-                onChange={(e) => setFiltroSituacaoPassivo(e.target.value)}
-              >
-                <option value="TODOS">Todos os Passivos</option>
-                {listaSituacoesPassivo.map((sit) => (
-                  <option key={sit} value={sit}>
-                    {sit}
-                  </option>
-                ))}
-              </select>
+              <FiltroMultiplaSelecao
+                titulo="Situação Passivo 2026"
+                icone="bi-hourglass-split"
+                placeholder="Todos os Passivos"
+                opcoes={opcoesSituacoesPassivo}
+                selecionados={filtroSituacoesPassivo}
+                onSelectionChange={setFiltroSituacoesPassivo}
+              />
             </div>
           </div>
+
+          {isFiltroAtivo && (
+            <div className="d-flex justify-content-end mt-2 pt-2 border-top">
+              <button
+                type="button"
+                className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+                onClick={handleLimparFiltros}
+              >
+                <i className="bi bi-x-circle"></i>
+                <span>Limpar Filtros Selecionados</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

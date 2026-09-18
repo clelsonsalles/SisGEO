@@ -17,6 +17,8 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
     alocacoes,
     deleteOrdemServico,
     getCalculoValorTotalOS,
+    getSituacoesSgcDoBanco,
+    getSituacoesPassivoDoBanco,
   } = useSisgos();
 
   // State for modals
@@ -31,6 +33,17 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
   const [filtroProjeto, setFiltroProjeto] = useState<string>('TODOS');
   const [filtroAno, setFiltroAno] = useState<string>('TODOS');
   const [filtroMes, setFiltroMes] = useState<string>('TODOS');
+  const [filtroSituacaoSgc, setFiltroSituacaoSgc] = useState<string>('TODOS');
+  const [filtroSituacaoPassivo, setFiltroSituacaoPassivo] = useState<string>('TODOS');
+
+  // Dynamic situations available from database
+  const situacoesSgcDisponiveis = useMemo(() => {
+    return getSituacoesSgcDoBanco();
+  }, [getSituacoesSgcDoBanco]);
+
+  const situacoesPassivoDisponiveis = useMemo(() => {
+    return getSituacoesPassivoDoBanco();
+  }, [getSituacoesPassivoDoBanco]);
 
   // Calculation of summary metrics
   const anosDisponiveis = useMemo(() => {
@@ -74,9 +87,17 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
         filtroMes === 'TODOS' ||
         osAlocs.some((a) => a.mes_referencia === filtroMes);
 
-      return searchMatch && projetoMatch && anoMatch && mesMatch;
+      // Filter situação SGC
+      const sgcMatch =
+        filtroSituacaoSgc === 'TODOS' || os.situacao_sgc === filtroSituacaoSgc;
+
+      // Filter situação Passivo 2026
+      const passivoMatch =
+        filtroSituacaoPassivo === 'TODOS' || os.situacao_passivo_2026 === filtroSituacaoPassivo;
+
+      return searchMatch && projetoMatch && anoMatch && mesMatch && sgcMatch && passivoMatch;
     });
-  }, [ordensServico, alocacoes, projetos, searchQuery, filtroProjeto, filtroAno, filtroMes]);
+  }, [ordensServico, alocacoes, projetos, searchQuery, filtroProjeto, filtroAno, filtroMes, filtroSituacaoSgc, filtroSituacaoPassivo]);
 
   // Overall calculations
   const totalGeralCalculado = useMemo(() => {
@@ -339,7 +360,7 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
         <div className="card-body p-3">
           <div className="row g-2 align-items-center">
             {/* Search Input */}
-            <div className="col-12 col-md-4">
+            <div className="col-12 col-xl-3">
               <div className="input-group">
                 <span className="input-group-text bg-white text-muted">
                   <i className="bi bi-search"></i>
@@ -364,7 +385,7 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
             </div>
 
             {/* Filter Projeto */}
-            <div className="col-6 col-md-3">
+            <div className="col-6 col-md-4 col-xl-2">
               <select
                 className="form-select"
                 value={filtroProjeto}
@@ -379,14 +400,48 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
               </select>
             </div>
 
-            {/* Filter Ano */}
-            <div className="col-3 col-md-2">
+            {/* Filter Situação SGC */}
+            <div className="col-6 col-md-4 col-xl-2">
               <select
                 className="form-select"
+                value={filtroSituacaoSgc}
+                onChange={(e) => setFiltroSituacaoSgc(e.target.value)}
+                title="Filtrar por Situação no SGC"
+              >
+                <option value="TODOS">Situação SGC (Todas)</option>
+                {situacoesSgcDisponiveis.map((sit) => (
+                  <option key={sit} value={sit}>
+                    {sit}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter Situação Passivo 2026 */}
+            <div className="col-6 col-md-4 col-xl-2">
+              <select
+                className="form-select"
+                value={filtroSituacaoPassivo}
+                onChange={(e) => setFiltroSituacaoPassivo(e.target.value)}
+                title="Filtrar por Situação Passivo 2026"
+              >
+                <option value="TODOS">Passivo 2026 (Todos)</option>
+                {situacoesPassivoDisponiveis.map((pass) => (
+                  <option key={pass} value={pass}>
+                    {pass}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter Ano */}
+            <div className="col-3 col-md-2 col-xl-1">
+              <select
+                className="form-select px-1 text-center"
                 value={filtroAno}
                 onChange={(e) => setFiltroAno(e.target.value)}
               >
-                <option value="TODOS">Todos os Anos</option>
+                <option value="TODOS">Ano</option>
                 {anosDisponiveis.map((ano) => (
                   <option key={ano} value={ano}>
                     {ano}
@@ -396,13 +451,13 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
             </div>
 
             {/* Filter Mês */}
-            <div className="col-3 col-md-2">
+            <div className="col-3 col-md-2 col-xl-1">
               <select
-                className="form-select"
+                className="form-select px-1 text-center"
                 value={filtroMes}
                 onChange={(e) => setFiltroMes(e.target.value)}
               >
-                <option value="TODOS">Todos os Meses</option>
+                <option value="TODOS">Mês</option>
                 {MESES_REFERENCIA.map((mes) => (
                   <option key={mes} value={mes}>
                     {mes}
@@ -412,7 +467,7 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
             </div>
 
             {/* Clear filters */}
-            <div className="col-12 col-md-1 text-md-end">
+            <div className="col-12 col-md-2 col-xl-1 text-md-end">
               <button
                 type="button"
                 className="btn btn-outline-secondary w-100"
@@ -422,6 +477,8 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
                   setFiltroProjeto('TODOS');
                   setFiltroAno('TODOS');
                   setFiltroMes('TODOS');
+                  setFiltroSituacaoSgc('TODOS');
+                  setFiltroSituacaoPassivo('TODOS');
                 }}
               >
                 <i className="bi bi-arrow-counterclockwise"></i>

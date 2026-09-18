@@ -51,6 +51,8 @@ app.get('/api/v1/health', (req, res) => {
       perfis_contratados: '/api/v1/perfis-contratados',
       dashboard: '/api/v1/dashboard/resumo',
       profissionais: '/api/v1/ordens-servico/profissionais/nomes-distintos',
+      situacoes_sgc: '/api/v1/ordens-servico/situacoes-sgc',
+      situacoes_passivo: '/api/v1/ordens-servico/situacoes-passivo',
     },
   });
 });
@@ -199,6 +201,32 @@ app.get('/api/v1/ordens-servico/detalhadas', (req, res) => {
   });
 
   res.json(result);
+});
+
+// 2.1. Situações no SGC existentes no banco de dados
+app.get('/api/v1/ordens-servico/situacoes-sgc', (req, res) => {
+  const valores = Array.from(
+    new Set(
+      ordensServico
+        .map((os) => (os.situacao_sgc || '').trim())
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+  res.json(valores);
+});
+
+// 2.2. Situações Passivo 2026 existentes no banco de dados
+app.get('/api/v1/ordens-servico/situacoes-passivo', (req, res) => {
+  const valores = Array.from(
+    new Set(
+      ordensServico
+        .map((os) => (os.situacao_passivo_2026 || '').trim())
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+  res.json(valores);
 });
 
 app.get('/api/v1/ordens-servico/:id', (req, res) => {

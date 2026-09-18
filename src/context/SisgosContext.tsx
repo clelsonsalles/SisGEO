@@ -52,6 +52,9 @@ interface SisgosContextType {
   // Regras de Negócio & Cálculos
   getCalculoValorTotalOS: (osId: number) => number;
   getNomesProfissionaisDistintos: () => string[];
+  getSituacoesSgcDoBanco: () => string[];
+  getSituacoesPassivoDoBanco: () => string[];
+  carregarSituacoesDoBanco: () => Promise<{ sgc: string[]; passivo: string[] }>;
   resetToInitialData: () => Promise<void>;
   clearAllData: () => Promise<void>;
 }
@@ -487,6 +490,38 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return Array.from(new Set(nomes)).sort((a, b) => a.localeCompare(b));
   };
 
+  const getSituacoesSgcDoBanco = useCallback((): string[] => {
+    const valores = ordensServico
+      .map(os => (os.situacao_sgc || '').trim())
+      .filter((v): v is string => Boolean(v));
+    return Array.from(new Set<string>(valores)).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [ordensServico]);
+
+  const getSituacoesPassivoDoBanco = useCallback((): string[] => {
+    const valores = ordensServico
+      .map(os => (os.situacao_passivo_2026 || '').trim())
+      .filter((v): v is string => Boolean(v));
+    return Array.from(new Set<string>(valores)).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [ordensServico]);
+
+  const carregarSituacoesDoBanco = useCallback(async (): Promise<{ sgc: string[]; passivo: string[] }> => {
+    try {
+      const [sgc, passivo] = await Promise.all([
+        apiService.getSituacoesSgc().catch(() => getSituacoesSgcDoBanco()),
+        apiService.getSituacoesPassivo().catch(() => getSituacoesPassivoDoBanco()),
+      ]);
+      return {
+        sgc: sgc.length > 0 ? sgc : getSituacoesSgcDoBanco(),
+        passivo: passivo.length > 0 ? passivo : getSituacoesPassivoDoBanco(),
+      };
+    } catch {
+      return {
+        sgc: getSituacoesSgcDoBanco(),
+        passivo: getSituacoesPassivoDoBanco(),
+      };
+    }
+  }, [getSituacoesSgcDoBanco, getSituacoesPassivoDoBanco]);
+
   return (
     <SisgosContext.Provider
       value={{
@@ -514,6 +549,9 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         deleteAlocacao,
         getCalculoValorTotalOS,
         getNomesProfissionaisDistintos,
+        getSituacoesSgcDoBanco,
+        getSituacoesPassivoDoBanco,
+        carregarSituacoesDoBanco,
         resetToInitialData,
         clearAllData,
       }}

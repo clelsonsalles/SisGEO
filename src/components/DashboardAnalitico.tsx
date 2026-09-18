@@ -4,6 +4,7 @@ import { DashboardHub, ModuloAnalitico } from './dashboard/DashboardHub';
 import { ModuloProjetosUnidades } from './dashboard/ModuloProjetosUnidades';
 import { ModuloAlocacoesCustos } from './dashboard/ModuloAlocacoesCustos';
 import { ModuloPerfisContratados } from './dashboard/ModuloPerfisContratados';
+import { ModuloPlanejamentoExecucao } from './dashboard/ModuloPlanejamentoExecucao';
 
 interface DashboardAnaliticoProps {
   onNavigate?: (tab: ActiveTab) => void;
@@ -77,6 +78,20 @@ export const DashboardAnalitico: React.FC<DashboardAnaliticoProps> = ({ onNaviga
                 <i className="bi bi-person-badge-fill"></i>
                 <span>Perfis Contratados</span>
               </button>
+
+              {/* Módulo 4 */}
+              <button
+                type="button"
+                className={`btn btn-sm ${
+                  activeModulo === 'planejamento-orcamento'
+                    ? 'btn-warning text-dark fw-bold shadow-sm'
+                    : 'btn-light border text-secondary'
+                } d-flex align-items-center gap-1 px-3`}
+                onClick={() => setActiveModulo('planejamento-orcamento')}
+              >
+                <i className="bi bi-file-earmark-ruled-fill"></i>
+                <span>Planejamento & Orçamento</span>
+              </button>
             </div>
           </div>
         </div>
@@ -100,6 +115,10 @@ export const DashboardAnalitico: React.FC<DashboardAnaliticoProps> = ({ onNaviga
 
       {activeModulo === 'perfis-contratados' && (
         <ModuloPerfisContratados onVoltarHub={() => setActiveModulo('hub')} />
+      )}
+
+      {activeModulo === 'planejamento-orcamento' && (
+        <ModuloPlanejamentoExecucao onVoltarHub={() => setActiveModulo('hub')} />
       )}
     </div>
   );

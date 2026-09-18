@@ -2,14 +2,19 @@ import React from 'react';
 import { useSisgos } from '../../context/SisgosContext';
 import { formatCurrency } from '../../utils/formatters';
 
-export type ModuloAnalitico = 'hub' | 'projetos-unidades' | 'alocacoes-custos' | 'perfis-contratados';
+export type ModuloAnalitico =
+  | 'hub'
+  | 'projetos-unidades'
+  | 'alocacoes-custos'
+  | 'perfis-contratados'
+  | 'planejamento-orcamento';
 
 interface DashboardHubProps {
   onSelectModulo: (modulo: ModuloAnalitico) => void;
 }
 
 export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) => {
-  const { ordensServico, projetos, perfis, alocacoes } = useSisgos();
+  const { ordensServico, projetos, perfis, alocacoes, getCalculoValorTotalOS } = useSisgos();
 
   // 1. Módulo Projetos & Unidades - Cálculos
   const qtdProjetos = projetos.length;
@@ -29,6 +34,21 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) =>
   const qtdProfissionais = nomesProfissionaisUnicos.size;
   const qtdPerfis = perfis.length;
   const custoMensalTotalPerfis = perfis.reduce((acc, p) => acc + (p.custo_mensal_perfil || 0), 0);
+
+  // 4. Módulo Planejamento & Execução Orçamentária - Cálculos
+  let totalNePlanejamento = 0;
+  let totalNeFaturamento = 0;
+  let totalSemNe = 0;
+
+  ordensServico.forEach((os) => {
+    const val = getCalculoValorTotalOS(os.id);
+    const temPlan = Boolean((os.ne_planejamento || '').trim());
+    const temFat = Boolean((os.ne_faturamento || '').trim());
+
+    if (temPlan) totalNePlanejamento += val;
+    if (temFat) totalNeFaturamento += val;
+    if (!temPlan && !temFat) totalSemNe += val;
+  });
 
   return (
     <div className="container-fluid py-4 px-md-4">
@@ -56,9 +76,9 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) =>
         {/* ============================================================== */}
         {/* CARD 1: MÓDULO PROJETOS & UNIDADES */}
         {/* ============================================================== */}
-        <div className="col-12 col-lg-4">
+        <div className="col-12 col-md-6 col-xl-3">
           <div className="card h-100 border-0 shadow-sm rounded-3 bg-white d-flex flex-column transition-all hover-shadow">
-            <div className="card-header bg-white pt-4 pb-3 px-4 border-bottom">
+            <div className="card-header bg-white pt-4 pb-3 px-3 border-bottom">
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <div className="d-flex align-items-center gap-2">
                   <div className="p-2 rounded-3 bg-primary-subtle text-primary">
@@ -68,18 +88,16 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) =>
                     <span className="badge bg-primary-subtle text-primary border border-primary-subtle small mb-1">
                       Módulo 1
                     </span>
-                    <h4 className="fw-bold text-dark mb-0 fs-5">Projetos & Unidades</h4>
+                    <h4 className="fw-bold text-dark mb-0 fs-6">Projetos & Unidades</h4>
                   </div>
                 </div>
-                <span className="badge bg-light text-secondary border">Demandas & Órgãos</span>
               </div>
-              <p className="text-muted small mb-0 mt-2">
-                Visão analítica dos projetos corporativos e secretarias atendidas, consolidando volume de OSs,
-                alocação de equipes e custos totais por demandante.
+              <p className="text-muted small mb-0 mt-1" style={{ fontSize: '12px' }}>
+                Visão de projetos corporativos e secretarias atendidas, volume de OSs, equipes e custos por demandante.
               </p>
             </div>
 
-            <div className="card-body px-4 py-3 flex-grow-1">
+            <div className="card-body px-3 py-3 flex-grow-1">
               {/* Indicadores de Destaque */}
               <div className="mb-3">
                 <span className="text-xs fw-bold text-uppercase text-secondary tracking-wider d-block mb-2">
@@ -90,20 +108,20 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) =>
                 <div className="vstack gap-2">
                   {/* Indicador 1: Quantidade de Projetos */}
                   <div className="p-2 rounded-2 bg-light border border-light-subtle d-flex justify-content-between align-items-center">
-                    <span className="small text-muted fw-medium">Quantidade de Projetos:</span>
-                    <span className="fw-bold text-dark fs-6">{qtdProjetos} projetos</span>
+                    <span className="small text-muted fw-medium" style={{ fontSize: '11px' }}>Projetos:</span>
+                    <span className="fw-bold text-dark small">{qtdProjetos} projetos</span>
                   </div>
 
                   {/* Indicador 2: Quantidade de Secretarias */}
                   <div className="p-2 rounded-2 bg-light border border-light-subtle d-flex justify-content-between align-items-center">
-                    <span className="small text-muted fw-medium">Quantidade de Secretarias:</span>
-                    <span className="fw-bold text-dark fs-6">{qtdSecretarias} secretarias</span>
+                    <span className="small text-muted fw-medium" style={{ fontSize: '11px' }}>Secretarias:</span>
+                    <span className="fw-bold text-dark small">{qtdSecretarias} secretarias</span>
                   </div>
 
                   {/* Indicador 3: Custo Médio das OSs Mensais dos Projetos */}
                   <div className="p-2 rounded-2 bg-light border border-light-subtle d-flex justify-content-between align-items-center">
-                    <span className="small text-muted fw-medium">Custo Médio das OSs Mensais:</span>
-                    <span className="fw-bold text-primary fs-6 font-monospace">
+                    <span className="small text-muted fw-medium" style={{ fontSize: '11px' }}>Custo Médio Mensal:</span>
+                    <span className="fw-bold text-primary font-monospace small">
                       {formatCurrency(custoMedioOssProjetos)}
                     </span>
                   </div>
@@ -112,34 +130,31 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) =>
 
               {/* Filtros Aplicáveis */}
               <div>
-                <span className="text-xs fw-bold text-uppercase text-secondary tracking-wider d-block mb-2">
+                <span className="text-xs fw-bold text-uppercase text-secondary tracking-wider d-block mb-1">
                   <i className="bi bi-funnel me-1"></i>
                   Filtros Aplicáveis
                 </span>
                 <div className="d-flex flex-wrap gap-1">
-                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                    Secretaria / Órgão
+                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style={{ fontSize: '10px' }}>
+                    Secretaria (Multi)
                   </span>
-                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                    Projeto / Unidade
+                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style={{ fontSize: '10px' }}>
+                    Projeto (Multi)
                   </span>
-                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style={{ fontSize: '10px' }}>
                     Ano de Exercício
-                  </span>
-                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                    Situação SGC & Passivo
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="card-footer bg-white p-4 pt-0 border-0">
+            <div className="card-footer bg-white p-3 pt-0 border-0">
               <button
                 type="button"
-                className="btn btn-primary w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm"
+                className="btn btn-primary w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm btn-sm"
                 onClick={() => onSelectModulo('projetos-unidades')}
               >
-                <span>Acessar Projetos & Unidades</span>
+                <span>Acessar Projetos</span>
                 <i className="bi bi-arrow-right"></i>
               </button>
             </div>
@@ -149,9 +164,9 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) =>
         {/* ============================================================== */}
         {/* CARD 2: MÓDULO ALOCAÇÕES & CUSTOS */}
         {/* ============================================================== */}
-        <div className="col-12 col-lg-4">
+        <div className="col-12 col-md-6 col-xl-3">
           <div className="card h-100 border-0 shadow-sm rounded-3 bg-white d-flex flex-column transition-all hover-shadow">
-            <div className="card-header bg-white pt-4 pb-3 px-4 border-bottom">
+            <div className="card-header bg-white pt-4 pb-3 px-3 border-bottom">
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <div className="d-flex align-items-center gap-2">
                   <div className="p-2 rounded-3 bg-success-subtle text-success">
@@ -161,18 +176,16 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) =>
                     <span className="badge bg-success-subtle text-success border border-success-subtle small mb-1">
                       Módulo 2
                     </span>
-                    <h4 className="fw-bold text-dark mb-0 fs-5">Alocações & Custos</h4>
+                    <h4 className="fw-bold text-dark mb-0 fs-6">Alocações & Custos</h4>
                   </div>
                 </div>
-                <span className="badge bg-light text-secondary border">Execução Financeira</span>
               </div>
-              <p className="text-muted small mb-0 mt-2">
-                Consolidação financeira detalhada das Ordens de Serviço, despesas mensais por perfil profissional,
-                notas de empenho e processo SEI de pagamento.
+              <p className="text-muted small mb-0 mt-1" style={{ fontSize: '12px' }}>
+                Custos realizados das OSs, histórico de empenhos, despesas por perfil e rateio por projeto.
               </p>
             </div>
 
-            <div className="card-body px-4 py-3 flex-grow-1">
+            <div className="card-body px-3 py-3 flex-grow-1">
               {/* Indicadores de Destaque */}
               <div className="mb-3">
                 <span className="text-xs fw-bold text-uppercase text-secondary tracking-wider d-block mb-2">
@@ -183,59 +196,56 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) =>
                 <div className="vstack gap-2">
                   {/* Indicador 1: Quantidade total de OSs */}
                   <div className="p-2 rounded-2 bg-light border border-light-subtle d-flex justify-content-between align-items-center">
-                    <span className="small text-muted fw-medium">Quantidade Total de OSs:</span>
-                    <span className="fw-bold text-dark fs-6">{qtdTotalOss} ordens</span>
+                    <span className="small text-muted fw-medium" style={{ fontSize: '11px' }}>Total de OSs:</span>
+                    <span className="fw-bold text-dark small">{qtdTotalOss} ordens</span>
                   </div>
 
                   {/* Indicador 2: Valor Total Consolidado */}
                   <div className="p-2 rounded-2 bg-light border border-light-subtle d-flex justify-content-between align-items-center">
-                    <span className="small text-muted fw-medium">Valor Total Consolidado:</span>
-                    <span className="fw-bold text-success fs-6 font-monospace">
+                    <span className="small text-muted fw-medium" style={{ fontSize: '11px' }}>Valor Consolidado:</span>
+                    <span className="fw-bold text-success font-monospace small">
                       {formatCurrency(valorTotalConsolidado)}
                     </span>
                   </div>
 
                   {/* Indicador 3: Total de profissionais alocados nas OSs */}
                   <div className="p-2 rounded-2 bg-light border border-light-subtle d-flex justify-content-between align-items-center">
-                    <span className="small text-muted fw-medium">Total de Alocados nas OSs:</span>
-                    <span className="fw-bold text-dark fs-6">{totalProfissionaisAlocadosNasOss} alocações</span>
+                    <span className="small text-muted fw-medium" style={{ fontSize: '11px' }}>Total de Alocações:</span>
+                    <span className="fw-bold text-dark small">{totalProfissionaisAlocadosNasOss} alocações</span>
                   </div>
                 </div>
               </div>
 
               {/* Filtros Aplicáveis */}
               <div>
-                <span className="text-xs fw-bold text-uppercase text-secondary tracking-wider d-block mb-2">
+                <span className="text-xs fw-bold text-uppercase text-secondary tracking-wider d-block mb-1">
                   <i className="bi bi-funnel me-1"></i>
                   Filtros Aplicáveis
                 </span>
                 <div className="d-flex flex-wrap gap-1">
-                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                    Número da OS
+                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style={{ fontSize: '10px' }}>
+                    Número da OS (Multi)
                   </span>
-                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                    Projeto / Unidade
+                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style={{ fontSize: '10px' }}>
+                    Projeto (Multi)
                   </span>
-                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                    Ano & Mês de Referência
+                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style={{ fontSize: '10px' }}>
+                    Mês & Ano (Multi)
                   </span>
-                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style={{ fontSize: '10px' }}>
                     Perfil Contratado
-                  </span>
-                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                    NE & Processo SEI
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="card-footer bg-white p-4 pt-0 border-0">
+            <div className="card-footer bg-white p-3 pt-0 border-0">
               <button
                 type="button"
-                className="btn btn-success w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm"
+                className="btn btn-success w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm btn-sm"
                 onClick={() => onSelectModulo('alocacoes-custos')}
               >
-                <span>Acessar Alocações & Custos</span>
+                <span>Acessar Custos</span>
                 <i className="bi bi-arrow-right"></i>
               </button>
             </div>
@@ -245,9 +255,9 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) =>
         {/* ============================================================== */}
         {/* CARD 3: MÓDULO PERFIS CONTRATADOS */}
         {/* ============================================================== */}
-        <div className="col-12 col-lg-4">
+        <div className="col-12 col-md-6 col-xl-3">
           <div className="card h-100 border-0 shadow-sm rounded-3 bg-white d-flex flex-column transition-all hover-shadow">
-            <div className="card-header bg-white pt-4 pb-3 px-4 border-bottom">
+            <div className="card-header bg-white pt-4 pb-3 px-3 border-bottom">
               <div className="d-flex align-items-center justify-content-between mb-2">
                 <div className="d-flex align-items-center gap-2">
                   <div className="p-2 rounded-3 bg-info-subtle text-info">
@@ -257,18 +267,16 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) =>
                     <span className="badge bg-info-subtle text-info border border-info-subtle small mb-1">
                       Módulo 3
                     </span>
-                    <h4 className="fw-bold text-dark mb-0 fs-5">Perfis Contratados</h4>
+                    <h4 className="fw-bold text-dark mb-0 fs-6">Perfis Contratados</h4>
                   </div>
                 </div>
-                <span className="badge bg-light text-secondary border">RH & Especialidades</span>
               </div>
-              <p className="text-muted small mb-0 mt-2">
-                Análise cruzada dos perfis contratados, alocação mensal dos profissionais nos projetos e acompanhamento
-                da taxa total de dedicação individual por mês.
+              <p className="text-muted small mb-0 mt-1" style={{ fontSize: '12px' }}>
+                Perfis do contrato, alocação mensal dos profissionais nos projetos e taxa de dedicação por mês.
               </p>
             </div>
 
-            <div className="card-body px-4 py-3 flex-grow-1">
+            <div className="card-body px-3 py-3 flex-grow-1">
               {/* Indicadores de Destaque */}
               <div className="mb-3">
                 <span className="text-xs fw-bold text-uppercase text-secondary tracking-wider d-block mb-2">
@@ -279,20 +287,20 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) =>
                 <div className="vstack gap-2">
                   {/* Indicador 1: Quantidade de Profissionais */}
                   <div className="p-2 rounded-2 bg-light border border-light-subtle d-flex justify-content-between align-items-center">
-                    <span className="small text-muted fw-medium">Quantidade de Profissionais:</span>
-                    <span className="fw-bold text-dark fs-6">{qtdProfissionais} profissionais</span>
+                    <span className="small text-muted fw-medium" style={{ fontSize: '11px' }}>Profissionais:</span>
+                    <span className="fw-bold text-dark small">{qtdProfissionais} ativos</span>
                   </div>
 
                   {/* Indicador 2: Quantidade de Perfis */}
                   <div className="p-2 rounded-2 bg-light border border-light-subtle d-flex justify-content-between align-items-center">
-                    <span className="small text-muted fw-medium">Quantidade de Perfis:</span>
-                    <span className="fw-bold text-dark fs-6">{qtdPerfis} perfis</span>
+                    <span className="small text-muted fw-medium" style={{ fontSize: '11px' }}>Perfis no Catálogo:</span>
+                    <span className="fw-bold text-dark small">{qtdPerfis} perfis</span>
                   </div>
 
                   {/* Indicador 3: Custo Mensal total dos Perfis */}
                   <div className="p-2 rounded-2 bg-light border border-light-subtle d-flex justify-content-between align-items-center">
-                    <span className="small text-muted fw-medium">Custo Mensal Total dos Perfis:</span>
-                    <span className="fw-bold text-info fs-6 font-monospace">
+                    <span className="small text-muted fw-medium" style={{ fontSize: '11px' }}>Custo Mensal Perfis:</span>
+                    <span className="fw-bold text-info font-monospace small">
                       {formatCurrency(custoMensalTotalPerfis)}
                     </span>
                   </div>
@@ -301,37 +309,122 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) =>
 
               {/* Filtros Aplicáveis */}
               <div>
-                <span className="text-xs fw-bold text-uppercase text-secondary tracking-wider d-block mb-2">
+                <span className="text-xs fw-bold text-uppercase text-secondary tracking-wider d-block mb-1">
                   <i className="bi bi-funnel me-1"></i>
                   Filtros Aplicáveis
                 </span>
                 <div className="d-flex flex-wrap gap-1">
-                  <span className="badge bg-primary text-white">
-                    Nome do Profissional (Chave)
+                  <span className="badge bg-primary text-white" style={{ fontSize: '10px' }}>
+                    Profissional (Multi)
                   </span>
-                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style={{ fontSize: '10px' }}>
                     Perfil Contratado
                   </span>
-                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                    Mês de Referência
-                  </span>
-                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                    Projeto / Unidade
-                  </span>
-                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
-                    Secretaria
+                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style={{ fontSize: '10px' }}>
+                    Mês / Secretaria
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="card-footer bg-white p-4 pt-0 border-0">
+            <div className="card-footer bg-white p-3 pt-0 border-0">
               <button
                 type="button"
-                className="btn btn-info text-white w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm"
+                className="btn btn-info text-white w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm btn-sm"
                 onClick={() => onSelectModulo('perfis-contratados')}
               >
-                <span>Acessar Perfis Contratados</span>
+                <span>Acessar Perfis</span>
+                <i className="bi bi-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        {/* ============================================================== */}
+        {/* CARD 4: MÓDULO PLANEJAMENTO & EXECUÇÃO ORÇAMENTÁRIA */}
+        {/* ============================================================== */}
+        <div className="col-12 col-md-6 col-xl-3">
+          <div className="card h-100 border-0 shadow-sm rounded-3 bg-white d-flex flex-column transition-all hover-shadow">
+            <div className="card-header bg-white pt-4 pb-3 px-3 border-bottom">
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <div className="d-flex align-items-center gap-2">
+                  <div className="p-2 rounded-3 bg-warning-subtle text-dark">
+                    <i className="bi bi-file-earmark-ruled-fill fs-5 text-warning-emphasis"></i>
+                  </div>
+                  <div>
+                    <span className="badge bg-warning text-dark border border-warning-subtle small mb-1">
+                      Módulo 4
+                    </span>
+                    <h4 className="fw-bold text-dark mb-0 fs-6">Planejamento & Orçamento</h4>
+                  </div>
+                </div>
+              </div>
+              <p className="text-muted small mb-0 mt-1" style={{ fontSize: '12px' }}>
+                Notas de Empenho de Planejamento e Faturamento cruzando com secretarias, projetos e meses.
+              </p>
+            </div>
+
+            <div className="card-body px-3 py-3 flex-grow-1">
+              {/* Indicadores de Destaque Obrigatórios */}
+              <div className="mb-3">
+                <span className="text-xs fw-bold text-uppercase text-secondary tracking-wider d-block mb-2">
+                  <i className="bi bi-star-fill text-warning me-1"></i>
+                  Indicadores de Destaque
+                </span>
+
+                <div className="vstack gap-2">
+                  {/* Indicador 1: Valor total em NE de Planejamento */}
+                  <div className="p-2 rounded-2 bg-light border border-light-subtle d-flex justify-content-between align-items-center">
+                    <span className="small text-muted fw-medium" style={{ fontSize: '11px' }}>NE Planejamento:</span>
+                    <span className="fw-bold text-primary font-monospace small">
+                      {formatCurrency(totalNePlanejamento)}
+                    </span>
+                  </div>
+
+                  {/* Indicador 2: Valor total em NE de Faturamento */}
+                  <div className="p-2 rounded-2 bg-light border border-light-subtle d-flex justify-content-between align-items-center">
+                    <span className="small text-muted fw-medium" style={{ fontSize: '11px' }}>NE Faturamento:</span>
+                    <span className="fw-bold text-success font-monospace small">
+                      {formatCurrency(totalNeFaturamento)}
+                    </span>
+                  </div>
+
+                  {/* Indicador 3: Valor total de OSs sem informação de NE */}
+                  <div className="p-2 rounded-2 bg-light border border-light-subtle d-flex justify-content-between align-items-center">
+                    <span className="small text-muted fw-medium" style={{ fontSize: '11px' }}>Sem informação de NE:</span>
+                    <span className="fw-bold text-warning font-monospace small">
+                      {formatCurrency(totalSemNe)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filtros Aplicáveis */}
+              <div>
+                <span className="text-xs fw-bold text-uppercase text-secondary tracking-wider d-block mb-1">
+                  <i className="bi bi-funnel me-1"></i>
+                  Filtros Aplicáveis
+                </span>
+                <div className="d-flex flex-wrap gap-1">
+                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style={{ fontSize: '10px' }}>
+                    Notas de Empenho (Multi)
+                  </span>
+                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style={{ fontSize: '10px' }}>
+                    Secretarias (Multi)
+                  </span>
+                  <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style={{ fontSize: '10px' }}>
+                    Projetos & Meses
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="card-footer bg-white p-3 pt-0 border-0">
+              <button
+                type="button"
+                className="btn btn-warning text-dark w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm btn-sm"
+                onClick={() => onSelectModulo('planejamento-orcamento')}
+              >
+                <span>Acessar Planejamento</span>
                 <i className="bi bi-arrow-right"></i>
               </button>
             </div>
@@ -348,7 +441,7 @@ export const DashboardHub: React.FC<DashboardHubProps> = ({ onSelectModulo }) =>
               Base de Dados Integrada em Tempo Real
             </h5>
             <p className="text-muted small mb-0">
-              Todos os módulos analíticos compartilham a mesma base relacional do SISGOS ({projetos.length} projetos, {ordensServico.length} ordens de serviço, {perfis.length} perfis de catálogo e {alocacoes.length} alocações ativas). Qualquer alteração de dados reflete instantaneamente nos três módulos.
+              Todos os módulos analíticos compartilham a mesma base relacional do SISGOS ({projetos.length} projetos, {ordensServico.length} ordens de serviço, {perfis.length} perfis de catálogo e {alocacoes.length} alocações ativas). Qualquer alteração de dados reflete instantaneamente em todos os 4 módulos.
             </p>
           </div>
           <div className="col-12 col-md-4 text-md-end">

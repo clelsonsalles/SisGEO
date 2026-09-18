@@ -218,6 +218,20 @@ export const apiService = {
     if (!res.ok) throw new Error(`HTTP ${res.status} ao excluir ordem de serviço`);
   },
 
+  async getSituacoesSgc(): Promise<string[]> {
+    const res = await fetch('/api/v1/ordens-servico/situacoes-sgc');
+    if (!res.ok) throw new Error(`HTTP ${res.status} ao obter situações SGC`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  },
+
+  async getSituacoesPassivo(): Promise<string[]> {
+    const res = await fetch('/api/v1/ordens-servico/situacoes-passivo');
+    if (!res.ok) throw new Error(`HTTP ${res.status} ao obter situações Passivo 2026`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  },
+
   // 4. Alocações (N:N)
   async createAlocacao(
     osId: number,
