@@ -26,6 +26,32 @@ export function normalizeProjeto(item: any): Projeto {
 }
 
 export function normalizeOrdemServico(item: any): OrdemServico {
+  // Captura resiliente do campo situacao_passivo_2026 suportando:
+  // - snake_case exato (situacao_passivo_2026)
+  // - camelCase (situacaoPassivo2026)
+  // - Jackson SnakeCase sem sublinhado antes de número (situacao_passivo2026)
+  // - nomes sem o ano (situacao_passivo, situacaoPassivo, passivo)
+  // - nomes abreviados (passivo_2026, passivo2026)
+  // - formatos em MAIÚSCULAS de bancos/queries nativas (SITUACAO_PASSIVO_2026, SITUACAO_PASSIVO, etc.)
+  const rawPassivo =
+    item.situacao_passivo_2026 ??
+    item.situacaoPassivo2026 ??
+    item.situacao_passivo2026 ??
+    item.situacao_passivo ??
+    item.situacaoPassivo ??
+    item.passivo_2026 ??
+    item.passivo2026 ??
+    item.passivo ??
+    item.SITUACAO_PASSIVO_2026 ??
+    item.SITUACAO_PASSIVO ??
+    item.SITUACAO_PASSIVO2026 ??
+    item.SITUACAOPASSIVO2026;
+
+  const finalPassivo =
+    rawPassivo !== null && rawPassivo !== undefined && String(rawPassivo).trim() !== ''
+      ? String(rawPassivo).trim()
+      : 'A Empenhar';
+
   return {
     id: Number(item.id),
     projeto_id: Number(item.projeto_id ?? item.projetoId ?? (item.projeto ? item.projeto.id : 0)),
@@ -34,12 +60,12 @@ export function normalizeOrdemServico(item: any): OrdemServico {
     alocacao_sgc: Boolean(item.alocacao_sgc ?? item.alocacaoSgc),
     entrega_sgc: Boolean(item.entrega_sgc ?? item.entregaSgc),
     descricao_sgc: Boolean(item.descricao_sgc ?? item.descricaoSgc),
-    situacao_sgc: item.situacao_sgc ?? item.situacaoSgc ?? 'Em Execução',
-    situacao_passivo_2026: item.situacao_passivo_2026 ?? item.situacaoPassivo2026 ?? 'A Empenhar',
-    ne_planejamento: item.ne_planejamento ?? item.nePlanejamento ?? null,
-    ne_faturamento: item.ne_faturamento ?? item.neFaturamento ?? null,
-    processo_sei_pagamento: item.processo_sei_pagamento ?? item.processoSeiPagamento ?? null,
-    criado_em: item.criado_em ?? item.criadoEm ?? '',
+    situacao_sgc: item.situacao_sgc ?? item.situacaoSgc ?? item.SITUACAO_SGC ?? 'Em Execução',
+    situacao_passivo_2026: finalPassivo,
+    ne_planejamento: item.ne_planejamento ?? item.nePlanejamento ?? item.NE_PLANEJAMENTO ?? null,
+    ne_faturamento: item.ne_faturamento ?? item.neFaturamento ?? item.NE_FATURAMENTO ?? null,
+    processo_sei_pagamento: item.processo_sei_pagamento ?? item.processoSeiPagamento ?? item.PROCESSO_SEI_PAGAMENTO ?? null,
+    criado_em: item.criado_em ?? item.criadoEm ?? item.CRIADO_EM ?? '',
   };
 }
 
@@ -145,9 +171,31 @@ export const apiService = {
 
   // 3. Ordens de Serviço & Alocações
   async getOrdensServicoDetalhadas(): Promise<{ ordens: OrdemServico[]; alocacoes: AlocacaoPerfilOs[] }> {
-    const res = await fetch('/api/v1/ordens-servico/detalhadas');
-    if (!res.ok) throw new Error(`HTTP ${res.status} ao carregar ordens de serviço`);
-    const rawList = await res.json();
+    let rawList: any[] = [];
+    try {
+      const res = await fetch('/api/v1/ordens-servico/detalhadas');
+      if (res.ok) {
+        rawList = await res.json();
+      } else {
+        // Se a rota /detalhadas não existir (ex: HTTP 404 em backend externo), faz fallback para a rota padrão /api/v1/ordens-servico
+        console.warn(`[SisGOS] /api/v1/ordens-servico/detalhadas retornou ${res.status}. Tentando /api/v1/ordens-servico...`);
+        const fallbackRes = await fetch('/api/v1/ordens-servico');
+        if (fallbackRes.ok) {
+          rawList = await fallbackRes.json();
+        } else {
+          throw new Error(`HTTP ${fallbackRes.status} ao carregar ordens de serviço`);
+        }
+      }
+    } catch (err) {
+      // Se falhar a conexão direta com /detalhadas, tenta ainda /api/v1/ordens-servico
+      const fallbackRes = await fetch('/api/v1/ordens-servico').catch(() => null);
+      if (fallbackRes && fallbackRes.ok) {
+        rawList = await fallbackRes.json();
+      } else {
+        throw err;
+      }
+    }
+
     if (!Array.isArray(rawList)) return { ordens: [], alocacoes: [] };
 
     const ordens: OrdemServico[] = [];
