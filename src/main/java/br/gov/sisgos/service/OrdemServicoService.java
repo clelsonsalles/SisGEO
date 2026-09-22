@@ -57,7 +57,7 @@ public class OrdemServicoService {
                 .entregaSgc(Boolean.TRUE.equals(dto.getEntregaSgc()))
                 .descricaoSgc(Boolean.TRUE.equals(dto.getDescricaoSgc()))
                 .situacaoSgc(dto.getSituacaoSgc() != null ? dto.getSituacaoSgc() : "Em Execução")
-                .situacaoPassivo2026(dto.getSituacaoPassivo2026() != null ? dto.getSituacaoPassivo2026() : "A Empenhar")
+                .situacaoPassivo2026(dto.getSituacaoPassivo2026() != null && !dto.getSituacaoPassivo2026().isBlank() ? dto.getSituacaoPassivo2026().trim() : "NULL")
                 .nePlanejamento(dto.getNePlanejamento() != null ? dto.getNePlanejamento().trim() : null)
                 .neFaturamento(dto.getNeFaturamento() != null ? dto.getNeFaturamento().trim() : null)
                 .processoSeiPagamento(dto.getProcessoSeiPagamento() != null ? dto.getProcessoSeiPagamento().trim() : null)

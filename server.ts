@@ -118,16 +118,21 @@ app.post('/api/v1/ordens-servico', (req, res) => {
   const neFat = ne_faturamento ?? neFaturamento;
   const seiProc = processo_sei_pagamento ?? processoSeiPagamento;
 
-  const newOs: OrdemServico = {
-    id: ++nextOsId,
-    projeto_id: finalProjId,
-    numero_os: finalNumeroOs,
-    ano_referencia: finalAno,
-    alocacao_sgc: Boolean(alocacao_sgc ?? alocacaoSgc),
-    entrega_sgc: Boolean(entrega_sgc ?? entregaSgc),
-    descricao_sgc: Boolean(descricao_sgc ?? descricaoSgc),
-    situacao_sgc: situacao_sgc ?? situacaoSgc ?? 'Em Execução',
-    situacao_passivo_2026: situacao_passivo_2026 ?? situacaoPassivo2026 ?? 'A Empenhar',
+    const passivoInput = situacao_passivo_2026 ?? situacaoPassivo2026;
+    const finalPassivo = (passivoInput !== undefined && passivoInput !== null && String(passivoInput).trim() !== '')
+      ? String(passivoInput).trim()
+      : 'NULL';
+
+    const newOs: OrdemServico = {
+      id: ++nextOsId,
+      projeto_id: finalProjId,
+      numero_os: finalNumeroOs,
+      ano_referencia: finalAno,
+      alocacao_sgc: Boolean(alocacao_sgc ?? alocacaoSgc),
+      entrega_sgc: Boolean(entrega_sgc ?? entregaSgc),
+      descricao_sgc: Boolean(descricao_sgc ?? descricaoSgc),
+      situacao_sgc: situacao_sgc ?? situacaoSgc ?? 'Em Execução',
+      situacao_passivo_2026: finalPassivo,
     ne_planejamento: nePlan ? String(nePlan).trim() : null,
     ne_faturamento: neFat ? String(neFat).trim() : null,
     processo_sei_pagamento: seiProc ? String(seiProc).trim() : null,
@@ -221,8 +226,10 @@ app.get('/api/v1/ordens-servico/situacoes-passivo', (req, res) => {
   const valores = Array.from(
     new Set(
       ordensServico
-        .map((os) => (os.situacao_passivo_2026 || '').trim())
-        .filter(Boolean)
+        .map((os) => {
+          const v = (os.situacao_passivo_2026 || '').trim();
+          return !v || v.toUpperCase() === 'NULL' ? 'NULL' : v;
+        })
     )
   ).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
@@ -290,7 +297,11 @@ app.put('/api/v1/ordens-servico/:id', (req, res) => {
     entrega_sgc: entrega_sgc !== undefined ? Boolean(entrega_sgc) : (entregaSgc !== undefined ? Boolean(entregaSgc) : current.entrega_sgc),
     descricao_sgc: descricao_sgc !== undefined ? Boolean(descricao_sgc) : (descricaoSgc !== undefined ? Boolean(descricao_sgc) : current.descricao_sgc),
     situacao_sgc: situacao_sgc ?? situacaoSgc ?? current.situacao_sgc,
-    situacao_passivo_2026: situacao_passivo_2026 ?? situacaoPassivo2026 ?? current.situacao_passivo_2026,
+    situacao_passivo_2026: (situacao_passivo_2026 !== undefined || situacaoPassivo2026 !== undefined)
+      ? ((situacao_passivo_2026 ?? situacaoPassivo2026) && String(situacao_passivo_2026 ?? situacaoPassivo2026).trim() !== ''
+          ? String(situacao_passivo_2026 ?? situacaoPassivo2026).trim()
+          : 'NULL')
+      : current.situacao_passivo_2026,
     ne_planejamento: (ne_planejamento !== undefined || nePlanejamento !== undefined)
       ? (String(ne_planejamento ?? nePlanejamento ?? '').trim() || null)
       : current.ne_planejamento,

@@ -499,8 +499,10 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const getSituacoesPassivoDoBanco = useCallback((): string[] => {
     const valores = ordensServico
-      .map(os => (os.situacao_passivo_2026 || '').trim())
-      .filter((v): v is string => Boolean(v));
+      .map(os => {
+        const v = (os.situacao_passivo_2026 || '').trim();
+        return !v || v.toUpperCase() === 'NULL' ? 'NULL' : v;
+      });
     return Array.from(new Set<string>(valores)).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }, [ordensServico]);
 

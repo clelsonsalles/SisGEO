@@ -59,14 +59,17 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
       const osAlocs = alocacoes.filter((a) => a.ordem_servico_id === os.id);
       const mesesAloc = osAlocs.map((a) => a.mes_referencia.toLowerCase());
 
+      // Passivo 2026: se nulo ou vazio no banco de dados, trata como 'NULL'
+      const osPassivo = (os.situacao_passivo_2026 || '').trim() || 'NULL';
+
       // Search match
       const searchLower = searchQuery.toLowerCase();
       const searchMatch =
         searchQuery.trim() === '' ||
         String(os.numero_os).includes(searchQuery) ||
         mesesAloc.some((m) => m.includes(searchLower)) ||
-        os.situacao_sgc.toLowerCase().includes(searchLower) ||
-        os.situacao_passivo_2026.toLowerCase().includes(searchLower) ||
+        (os.situacao_sgc && os.situacao_sgc.toLowerCase().includes(searchLower)) ||
+        osPassivo.toLowerCase().includes(searchLower) ||
         (os.ne_planejamento && os.ne_planejamento.toLowerCase().includes(searchLower)) ||
         (os.ne_faturamento && os.ne_faturamento.toLowerCase().includes(searchLower)) ||
         (os.processo_sei_pagamento && os.processo_sei_pagamento.toLowerCase().includes(searchLower)) ||
@@ -93,7 +96,7 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
 
       // Filter situação Passivo 2026
       const passivoMatch =
-        filtroSituacaoPassivo === 'TODOS' || os.situacao_passivo_2026 === filtroSituacaoPassivo;
+        filtroSituacaoPassivo === 'TODOS' || osPassivo === filtroSituacaoPassivo;
 
       return searchMatch && projetoMatch && anoMatch && mesMatch && sgcMatch && passivoMatch;
     });
@@ -428,7 +431,7 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
                 <option value="TODOS">Passivo 2026 (Todos)</option>
                 {situacoesPassivoDisponiveis.map((pass) => (
                   <option key={pass} value={pass}>
-                    {pass}
+                    {pass === 'NULL' ? 'NULL (Sem valor)' : pass}
                   </option>
                 ))}
               </select>
@@ -661,9 +664,15 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
 
                       {/* Passivo 2026 */}
                       <td>
-                        <span className="badge bg-light text-dark border px-2 py-1">
-                          {os.situacao_passivo_2026}
-                        </span>
+                        {os.situacao_passivo_2026 && os.situacao_passivo_2026.trim() && os.situacao_passivo_2026.trim().toUpperCase() !== 'NULL' ? (
+                          <span className="badge bg-light text-dark border px-2 py-1">
+                            {os.situacao_passivo_2026}
+                          </span>
+                        ) : (
+                          <span className="badge bg-secondary-subtle text-secondary border px-2 py-1 font-monospace" title="Sem valor cadastrado no banco de dados (NULL)">
+                            NULL
+                          </span>
+                        )}
                       </td>
 
                       {/* Alocações */}

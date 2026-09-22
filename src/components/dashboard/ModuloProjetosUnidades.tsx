@@ -79,10 +79,18 @@ export const ModuloProjetosUnidades: React.FC<ModuloProjetosUnidadesProps> = ({ 
   }, [ordensServico]);
 
   const opcoesSituacoesPassivo: OpcaoFiltro[] = useMemo(() => {
-    const situacoes = Array.from(new Set(ordensServico.map((os) => (os.situacao_passivo_2026 || '').trim()).filter(Boolean))).sort();
+    const situacoes = Array.from(
+      new Set(
+        ordensServico.map((os) => {
+          const v = (os.situacao_passivo_2026 || '').trim();
+          return !v || v.toUpperCase() === 'NULL' ? 'NULL' : v;
+        })
+      )
+    ).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
     return situacoes.map((sit) => ({
       value: sit,
-      label: sit,
+      label: sit === 'NULL' ? 'NULL (Sem valor)' : sit,
     }));
   }, [ordensServico]);
 
@@ -120,7 +128,8 @@ export const ModuloProjetosUnidades: React.FC<ModuloProjetosUnidadesProps> = ({ 
           if (os.projeto_id !== proj.id) return false;
           if (filtroAnos.length > 0 && !filtroAnos.includes(String(os.ano_referencia))) return false;
           if (filtroSituacoesSgc.length > 0 && (!os.situacao_sgc || !filtroSituacoesSgc.includes(os.situacao_sgc))) return false;
-          if (filtroSituacoesPassivo.length > 0 && (!os.situacao_passivo_2026 || !filtroSituacoesPassivo.includes(os.situacao_passivo_2026))) return false;
+          const passivoVal = (os.situacao_passivo_2026 || '').trim() || 'NULL';
+          if (filtroSituacoesPassivo.length > 0 && !filtroSituacoesPassivo.includes(passivoVal)) return false;
           return true;
         });
 

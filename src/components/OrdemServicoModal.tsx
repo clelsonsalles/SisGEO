@@ -84,15 +84,20 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
     const doBanco = Array.from(
       new Set(
         ordensServico
-          .map((os) => (os.situacao_passivo_2026 || '').trim())
-          .filter(Boolean)
+          .map((os) => {
+            const val = (os.situacao_passivo_2026 || '').trim();
+            return !val || val.toUpperCase() === 'NULL' ? 'NULL' : val;
+          })
       )
     ).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
     // Inclui a situação da OS em edição se não estiver na lista
-    if (editingOs?.situacao_passivo_2026 && editingOs.situacao_passivo_2026.trim() && !doBanco.includes(editingOs.situacao_passivo_2026.trim())) {
-      doBanco.push(editingOs.situacao_passivo_2026.trim());
-      doBanco.sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    if (editingOs) {
+      const editVal = (editingOs.situacao_passivo_2026 || '').trim() || 'NULL';
+      if (!doBanco.includes(editVal)) {
+        doBanco.push(editVal);
+        doBanco.sort((a, b) => a.localeCompare(b, 'pt-BR'));
+      }
     }
 
     return doBanco;
@@ -102,8 +107,8 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
   const contagemPassivoBanco = useMemo(() => {
     const counts: Record<string, number> = {};
     ordensServico.forEach((os) => {
-      const val = (os.situacao_passivo_2026 || '').trim();
-      if (val) counts[val] = (counts[val] || 0) + 1;
+      const val = (os.situacao_passivo_2026 || '').trim() || 'NULL';
+      counts[val] = (counts[val] || 0) + 1;
     });
     return counts;
   }, [ordensServico]);
@@ -122,7 +127,7 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
       setIsNovoSituacaoSgc(false);
       setNovoSituacaoSgcTexto('');
 
-      const valorPassivo = editingOs.situacao_passivo_2026 || (opcoesSituacaoPassivo.length > 0 ? opcoesSituacaoPassivo[0] : '');
+      const valorPassivo = (editingOs.situacao_passivo_2026 || '').trim() || 'NULL';
       setSituacaoPassivo2026(valorPassivo);
       setIsNovoSituacaoPassivo(false);
       setNovoSituacaoPassivoTexto('');
@@ -146,11 +151,9 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
       setIsNovoSituacaoSgc(opcoesSituacaoSgc.length === 0);
       setNovoSituacaoSgcTexto('');
 
-      const padraoPassivo = opcoesSituacaoPassivo.includes('Sem Passivo')
-        ? 'Sem Passivo'
-        : (opcoesSituacaoPassivo.length > 0 ? opcoesSituacaoPassivo[0] : 'Sem Passivo');
+      const padraoPassivo = opcoesSituacaoPassivo.length > 0 ? opcoesSituacaoPassivo[0] : 'NULL';
       setSituacaoPassivo2026(padraoPassivo);
-      setIsNovoSituacaoPassivo(opcoesSituacaoPassivo.length === 0);
+      setIsNovoSituacaoPassivo(false);
       setNovoSituacaoPassivoTexto('');
 
       setNePlanejamento('');
@@ -184,12 +187,9 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
       return;
     }
 
-    // Validação da Situação Passivo 2026 (novo valor ou selecionado)
-    const finalSituacaoPassivo = isNovoSituacaoPassivo ? novoSituacaoPassivoTexto.trim() : situacaoPassivo2026.trim();
-    if (!finalSituacaoPassivo) {
-      setErrorMsg('Informe o valor para o campo "Situação Passivo 2026" ou retorne à lista de opções.');
-      return;
-    }
+    // Situação Passivo 2026 (validação removida conforme solicitado: se vazio ou nulo, informa 'NULL')
+    const rawPassivo = isNovoSituacaoPassivo ? novoSituacaoPassivoTexto.trim() : situacaoPassivo2026.trim();
+    const finalSituacaoPassivo = rawPassivo || 'NULL';
 
     try {
       if (editingOs) {
@@ -517,13 +517,12 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
                         <input
                           type="text"
                           className="form-control border-primary"
-                          placeholder="Digite a nova situação do passivo 2026..."
+                          placeholder="Digite a situação do passivo (ou deixe em branco para 'NULL')..."
                           value={novoSituacaoPassivoTexto}
                           onChange={(e) => setNovoSituacaoPassivoTexto(e.target.value)}
                           maxLength={100}
                           list="datalist-situacao-passivo"
                           autoFocus
-                          required
                         />
                         <button
                           type="button"
@@ -540,7 +539,7 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
                       <div className="d-flex justify-content-between align-items-center mt-1">
                         <small className="text-primary fw-medium" style={{ fontSize: '11px' }}>
                           <i className="bi bi-info-circle me-1"></i>
-                          Cadastrando novo valor para o Passivo nesta OS.
+                          Valor livre. Caso deixe em branco, será salvo como <code>NULL</code>.
                         </small>
                         <span className="text-muted" style={{ fontSize: '10px' }}>
                           {novoSituacaoPassivoTexto.length}/100
@@ -568,13 +567,13 @@ export const OrdemServicoModal: React.FC<OrdemServicoModalProps> = ({
                         }}
                       >
                         {opcoesSituacaoPassivo.length === 0 ? (
-                          <option value="">Nenhuma situação cadastrada no banco</option>
+                          <option value="NULL">NULL (Nenhum valor cadastrado no banco)</option>
                         ) : (
                           opcoesSituacaoPassivo.map((op) => {
                             const qtd = contagemPassivoBanco[op] || 0;
                             return (
                               <option key={op} value={op}>
-                                {op} {qtd > 0 ? `(${qtd} no banco)` : ''}
+                                {op === 'NULL' ? 'NULL (Sem valor no banco)' : op} {qtd > 0 ? `(${qtd} no banco)` : ''}
                               </option>
                             );
                           })

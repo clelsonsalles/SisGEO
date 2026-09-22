@@ -162,6 +162,21 @@ export const INITIAL_ORDENS_SERVICO: OrdemServico[] = [
     ne_faturamento: '2026NE000301',
     processo_sei_pagamento: 'SEI-08001/003112/2026',
     criado_em: '2026-02-25 16:20:00'
+  },
+  {
+    id: 5,
+    projeto_id: 1,
+    numero_os: 103,
+    ano_referencia: 2026,
+    alocacao_sgc: false,
+    entrega_sgc: false,
+    descricao_sgc: false,
+    situacao_sgc: 'Em Definição',
+    situacao_passivo_2026: 'NULL',
+    ne_planejamento: null,
+    ne_faturamento: null,
+    processo_sei_pagamento: null,
+    criado_em: '2026-03-01 11:00:00'
   }
 ];
 
