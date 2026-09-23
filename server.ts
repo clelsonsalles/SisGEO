@@ -427,6 +427,87 @@ app.post('/api/v1/ordens-servico/:id/alocacoes', (req, res) => {
   });
 });
 
+app.put('/api/v1/alocacoes/:alocacaoId/alterar-os', (req, res) => {
+  const alocacaoId = Number(req.params.alocacaoId);
+  const alocIndex = alocacoes.findIndex((a) => a.id === alocacaoId);
+  if (alocIndex === -1) {
+    return res.status(404).json({ error: `Alocação com ID ${alocacaoId} não encontrada.` });
+  }
+
+  const { novaOrdemServicoId, nova_ordem_servico_id, ordem_servico_id, ordemServicoId } = req.body;
+  const targetOsId = Number(novaOrdemServicoId ?? nova_ordem_servico_id ?? ordem_servico_id ?? ordemServicoId);
+  if (!targetOsId) {
+    return res.status(400).json({ error: 'O ID da nova Ordem de Serviço é obrigatório.' });
+  }
+
+  const targetOs = ordensServico.find((os) => os.id === targetOsId);
+  if (!targetOs) {
+    return res.status(404).json({ error: `Ordem de Serviço com ID ${targetOsId} não encontrada.` });
+  }
+
+  const currentAloc = alocacoes[alocIndex];
+  // Validação CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, nome_profissional, mes_referencia)
+  const isDuplicate = alocacoes.some(
+    (a) =>
+      a.id !== alocacaoId &&
+      a.ordem_servico_id === targetOsId &&
+      a.nome_profissional.trim().toLowerCase() === currentAloc.nome_profissional.trim().toLowerCase() &&
+      a.mes_referencia === currentAloc.mes_referencia
+  );
+  if (isDuplicate) {
+    return res.status(409).json({
+      error: `Violação da restrição UNIQUE: O profissional '${currentAloc.nome_profissional}' já possui alocação no mês de ${currentAloc.mes_referencia} na OS #${targetOs.numero_os}/${targetOs.ano_referencia}.`,
+    });
+  }
+
+  alocacoes[alocIndex] = {
+    ...currentAloc,
+    ordem_servico_id: targetOsId,
+  };
+
+  res.json(alocacoes[alocIndex]);
+});
+
+app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId/alterar-os', (req, res) => {
+  const alocacaoId = Number(req.params.alocacaoId);
+  const alocIndex = alocacoes.findIndex((a) => a.id === alocacaoId);
+  if (alocIndex === -1) {
+    return res.status(404).json({ error: `Alocação com ID ${alocacaoId} não encontrada.` });
+  }
+
+  const { novaOrdemServicoId, nova_ordem_servico_id, ordem_servico_id, ordemServicoId } = req.body;
+  const targetOsId = Number(novaOrdemServicoId ?? nova_ordem_servico_id ?? ordem_servico_id ?? ordemServicoId);
+  if (!targetOsId) {
+    return res.status(400).json({ error: 'O ID da nova Ordem de Serviço é obrigatório.' });
+  }
+
+  const targetOs = ordensServico.find((os) => os.id === targetOsId);
+  if (!targetOs) {
+    return res.status(404).json({ error: `Ordem de Serviço com ID ${targetOsId} não encontrada.` });
+  }
+
+  const currentAloc = alocacoes[alocIndex];
+  const isDuplicate = alocacoes.some(
+    (a) =>
+      a.id !== alocacaoId &&
+      a.ordem_servico_id === targetOsId &&
+      a.nome_profissional.trim().toLowerCase() === currentAloc.nome_profissional.trim().toLowerCase() &&
+      a.mes_referencia === currentAloc.mes_referencia
+  );
+  if (isDuplicate) {
+    return res.status(409).json({
+      error: `Violação da restrição UNIQUE: O profissional '${currentAloc.nome_profissional}' já possui alocação no mês de ${currentAloc.mes_referencia} na OS #${targetOs.numero_os}/${targetOs.ano_referencia}.`,
+    });
+  }
+
+  alocacoes[alocIndex] = {
+    ...currentAloc,
+    ordem_servico_id: targetOsId,
+  };
+
+  res.json(alocacoes[alocIndex]);
+});
+
 app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
   const alocacaoId = Number(req.params.alocacaoId);
   const alocIndex = alocacoes.findIndex((a) => a.id === alocacaoId);
@@ -435,6 +516,10 @@ app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
   }
 
   const {
+    novaOrdemServicoId,
+    nova_ordem_servico_id,
+    ordem_servico_id,
+    ordemServicoId,
     perfilContratadoId,
     perfil_contratado_id,
     nomeProfissional,
@@ -444,9 +529,20 @@ app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
     mes_referencia,
     mesReferencia,
   } = req.body;
-  const targetPerfilId = Number(perfilContratadoId ?? perfil_contratado_id);
-  const targetNome = String(nomeProfissional ?? nome_profissional ?? '').trim();
-  const targetPercentual = Number(Number(percentualAlocacao ?? percentual_alocacao ?? 0).toFixed(2));
+
+  const rawTargetOsId = novaOrdemServicoId ?? nova_ordem_servico_id ?? ordem_servico_id ?? ordemServicoId;
+  const targetOsId = rawTargetOsId !== undefined && rawTargetOsId !== null ? Number(rawTargetOsId) : alocacoes[alocIndex].ordem_servico_id;
+  if (rawTargetOsId) {
+    const targetOs = ordensServico.find((os) => os.id === targetOsId);
+    if (!targetOs) {
+      return res.status(404).json({ error: `Ordem de Serviço de destino com ID ${targetOsId} não encontrada.` });
+    }
+  }
+
+  const targetPerfilId = Number(perfilContratadoId ?? perfil_contratado_id ?? alocacoes[alocIndex].perfil_contratado_id);
+  const targetNome = String(nomeProfissional ?? nome_profissional ?? alocacoes[alocIndex].nome_profissional).trim();
+  const rawPercentual = percentualAlocacao ?? percentual_alocacao ?? alocacoes[alocIndex].percentual_alocacao;
+  const targetPercentual = Number(Number(rawPercentual).toFixed(2));
   if (isNaN(targetPercentual) || targetPercentual < 0 || targetPercentual > 100) {
     return res.status(400).json({ error: 'O percentual de alocação deve estar entre 0.00% e 100.00%.' });
   }
@@ -467,7 +563,7 @@ app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
   // Validação CONSTRAINT unq_alocacao_os_perfil_mes UNIQUE (ordem_servico_id, nome_profissional, mes_referencia)
   const isDuplicate = alocacoes.some(
     (a) => a.id !== alocacaoId &&
-           a.ordem_servico_id === alocacoes[alocIndex].ordem_servico_id &&
+           a.ordem_servico_id === targetOsId &&
            a.nome_profissional.trim().toLowerCase() === targetNome.toLowerCase() &&
            a.mes_referencia === targetMes
   );
@@ -482,6 +578,7 @@ app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
 
   alocacoes[alocIndex] = {
     ...alocacoes[alocIndex],
+    ordem_servico_id: targetOsId,
     perfil_contratado_id: perfil.id,
     mes_referencia: targetMes,
     nome_profissional: targetNome,

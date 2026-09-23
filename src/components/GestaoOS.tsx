@@ -750,6 +750,9 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
           setIsAlocacaoModalOpen(false);
           setSelectedOsForAlocacao(null);
         }}
+        onSelectOs={(novaOs) => {
+          setSelectedOsForAlocacao(novaOs);
+        }}
       />
 
       {/* Modal de Criação / Edição de Ordem de Serviço */}

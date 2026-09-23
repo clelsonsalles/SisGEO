@@ -45,8 +45,13 @@ interface SisgosContextType {
       mes_referencia: MesReferencia;
       nome_profissional: string;
       percentual_alocacao: number;
+      nova_ordem_servico_id?: number;
     }
   ) => void;
+  alterarOrdemServicoAlocacao: (
+    alocacaoId: number,
+    novaOrdemServicoId: number
+  ) => Promise<void>;
   deleteAlocacao: (id: number) => void;
 
   // Regras de Negócio & Cálculos
@@ -466,6 +471,63 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const alterarOrdemServicoAlocacao = async (
+    alocacaoId: number,
+    novaOrdemServicoId: number
+  ) => {
+    const targetAloc = alocacoes.find((a) => a.id === alocacaoId);
+    if (!targetAloc) {
+      throw new Error(`Alocação com ID #${alocacaoId} não encontrada.`);
+    }
+
+    if (targetAloc.ordem_servico_id === novaOrdemServicoId) {
+      return; // Já vinculada à mesma OS
+    }
+
+    const novaOs = ordensServico.find((os) => os.id === novaOrdemServicoId);
+    if (!novaOs) {
+      throw new Error(`Ordem de Serviço destino #${novaOrdemServicoId} não encontrada.`);
+    }
+
+    // Validação da constraint de unicidade (CONSTRAINT UNIQUE unq_alocacao_os_perfil_mes):
+    // Não pode existir alocação para o mesmo profissional no mesmo mês na OS de destino
+    const isDuplicate = alocacoes.some(
+      (a) =>
+        a.id !== alocacaoId &&
+        a.ordem_servico_id === novaOrdemServicoId &&
+        a.nome_profissional.trim().toLowerCase() === targetAloc.nome_profissional.trim().toLowerCase() &&
+        a.mes_referencia === targetAloc.mes_referencia
+    );
+
+    if (isDuplicate) {
+      throw new Error(
+        `Violação de unicidade (unq_alocacao_os_perfil_mes): O profissional '${targetAloc.nome_profissional}' já possui uma alocação no mês de ${targetAloc.mes_referencia} na OS de destino #${novaOs.numero_os}/${novaOs.ano_referencia}.`
+      );
+    }
+
+    const osOrigemId = targetAloc.ordem_servico_id;
+
+    // Atualiza estado local no React
+    setAlocacoes((prev) =>
+      prev.map((a) => {
+        if (a.id === alocacaoId) {
+          return {
+            ...a,
+            ordem_servico_id: novaOrdemServicoId,
+          };
+        }
+        return a;
+      })
+    );
+
+    // Persiste no backend
+    try {
+      await apiService.alterarOrdemServicoAlocacao(alocacaoId, osOrigemId, novaOrdemServicoId);
+    } catch (err) {
+      console.warn('[SisGOS] Não foi possível persistir alteração de OS da alocação no backend:', err);
+    }
+  };
+
   const deleteAlocacao = (id: number) => {
     const target = alocacoes.find(a => a.id === id);
     const osId = target ? target.ordem_servico_id : 0;
@@ -548,6 +610,7 @@ export const SisgosProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         getAlocacoesByOs,
         addAlocacao,
         updateAlocacao,
+        alterarOrdemServicoAlocacao,
         deleteAlocacao,
         getCalculoValorTotalOS,
         getNomesProfissionaisDistintos,

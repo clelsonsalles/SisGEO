@@ -2,17 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useSisgos } from '../context/SisgosContext';
 import { OrdemServico, AlocacaoPerfilOs, MESES_REFERENCIA, MesReferencia } from '../types/models';
 import { formatCurrency, formatPercent } from '../utils/formatters';
+import { PesquisaOrdemServicoModal } from './PesquisaOrdemServicoModal';
 
 interface AlocacaoModalProps {
   ordemServico: OrdemServico | null;
   isOpen: boolean;
   onClose: () => void;
+  onSelectOs?: (os: OrdemServico) => void;
 }
 
 export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
   ordemServico,
   isOpen,
   onClose,
+  onSelectOs,
 }) => {
   const {
     projetos,
@@ -20,6 +23,7 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
     alocacoes,
     addAlocacao,
     updateAlocacao,
+    alterarOrdemServicoAlocacao,
     deleteAlocacao,
     getCalculoValorTotalOS,
     getNomesProfissionaisDistintos,
@@ -28,6 +32,11 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
   // Mode: list or form
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+
+  // Modal para pesquisar e alterar OS
+  const [isAlterarOsModalOpen, setIsAlterarOsModalOpen] = useState<boolean>(false);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
+  const [transferredOsInfo, setTransferredOsInfo] = useState<OrdemServico | null>(null);
 
   // Form fields
   const [selectedPerfilId, setSelectedPerfilId] = useState<number | ''>('');
@@ -129,6 +138,20 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
     } catch (err: any) {
       setFormError(err.message || 'Erro ao salvar alocação.');
     }
+  };
+
+  const handleConfirmAlterarOs = async (novaOs: OrdemServico) => {
+    if (!editingId) return;
+    const alocAtual = alocacoes.find((a) => a.id === editingId);
+    const nomeProf = alocAtual?.nome_profissional || nomeProfissional;
+
+    await alterarOrdemServicoAlocacao(editingId, novaOs.id);
+
+    const projDestino = projetos.find((p) => p.id === novaOs.projeto_id);
+    const msg = `Alocação do profissional "${nomeProf}" foi alterada e associada com sucesso à OS #${novaOs.numero_os}/${novaOs.ano_referencia} (${projDestino?.sigla_projeto || 'Projeto'})!`;
+    setSuccessNotice(msg);
+    setTransferredOsInfo(novaOs);
+    resetForm();
   };
 
   const handleDelete = (id: number, nome: string) => {
@@ -244,23 +267,116 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
 
           {/* Body */}
           <div className="modal-body p-4">
+            {/* Feedback alert after transferring/associating OS */}
+            {successNotice && (
+              <div className="alert alert-success alert-dismissible fade show py-3 px-3 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2 shadow-sm border-success">
+                <div className="d-flex align-items-center gap-2">
+                  <i className="bi bi-check-circle-fill fs-4 text-success"></i>
+                  <span className="fw-semibold text-dark">{successNotice}</span>
+                </div>
+                <div className="d-flex align-items-center gap-2">
+                  {transferredOsInfo && onSelectOs && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-success fw-semibold shadow-sm d-inline-flex align-items-center gap-1"
+                      onClick={() => {
+                        onSelectOs(transferredOsInfo);
+                        setSuccessNotice(null);
+                        setTransferredOsInfo(null);
+                      }}
+                    >
+                      <i className="bi bi-box-arrow-in-right"></i>
+                      Visualizar OS #{transferredOsInfo.numero_os}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={() => {
+                      setSuccessNotice(null);
+                      setTransferredOsInfo(null);
+                    }}
+                    aria-label="Fechar"
+                  ></button>
+                </div>
+              </div>
+            )}
+
             {/* Form Section when open */}
             {isEditing ? (
               <div className="card border-primary border-2 shadow-sm mb-4">
-                <div className="card-header bg-primary-subtle text-primary-emphasis fw-bold py-2 d-flex justify-content-between align-items-center">
-                  <span>
-                    <i className="bi bi-pencil-square me-2"></i>
-                    {editingId ? 'Editar Alocação de Perfil' : 'Nova Alocação de Perfil na OS'}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={() => setIsEditing(false)}
-                  >
-                    <i className="bi bi-x me-1"></i>Cancelar
-                  </button>
+                <div className="card-header bg-primary-subtle text-primary-emphasis fw-bold py-2 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                  <div className="d-flex align-items-center gap-2">
+                    <i className="bi bi-pencil-square text-primary fs-5"></i>
+                    <span>
+                      {editingId ? 'Editar Alocação de Perfil' : 'Nova Alocação de Perfil na OS'}
+                    </span>
+                    {editingId && (
+                      <span className="badge bg-primary text-white ms-1">
+                        OS #{ordemServico.numero_os} / {ordemServico.ano_referencia}
+                      </span>
+                    )}
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    {editingId && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary fw-semibold shadow-sm d-inline-flex align-items-center gap-1"
+                        onClick={() => setIsAlterarOsModalOpen(true)}
+                        title="Pesquisar e transferir esta alocação para outra Ordem de Serviço"
+                      >
+                        <i className="bi bi-arrow-left-right"></i>
+                        <span>Alterar OS</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary"
+                      onClick={() => resetForm()}
+                    >
+                      <i className="bi bi-x me-1"></i>Cancelar
+                    </button>
+                  </div>
                 </div>
                 <div className="card-body p-4">
+                  {/* Top Bar inside form with Current OS Association & Alterar OS button */}
+                  {editingId && (
+                    <div className="bg-light border border-primary-subtle rounded-3 p-3 mb-4 shadow-sm d-flex flex-wrap justify-content-between align-items-center gap-2">
+                      <div className="d-flex align-items-center gap-3">
+                        <div
+                          className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+                          style={{ width: 38, height: 38 }}
+                        >
+                          <i className="bi bi-file-earmark-text-fill fs-5"></i>
+                        </div>
+                        <div>
+                          <span className="text-muted small d-block">
+                            Ordem de Serviço Associada a esta Alocação:
+                          </span>
+                          <strong className="text-dark fs-6">
+                            OS #{ordemServico.numero_os} / {ordemServico.ano_referencia}
+                          </strong>
+                          <span className="mx-2 text-muted">•</span>
+                          <span className="fw-semibold text-primary">{projeto?.sigla_projeto}</span>
+                          <span className="text-muted ms-1">({projeto?.nome_projeto})</span>
+                          <span className="badge bg-secondary-subtle text-secondary border ms-2">
+                            {projeto?.sigla_secretaria}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary fw-bold shadow-sm d-inline-flex align-items-center gap-2 px-3 py-2"
+                        onClick={() => setIsAlterarOsModalOpen(true)}
+                        title="Pesquisar outra Ordem de Serviço e transferir esta alocação"
+                      >
+                        <i className="bi bi-arrow-left-right fs-6"></i>
+                        <span>Alterar OS</span>
+                      </button>
+                    </div>
+                  )}
+
                   {formError && (
                     <div className="alert alert-danger py-2 px-3 small d-flex align-items-center mb-3">
                       <i className="bi bi-exclamation-triangle-fill me-2"></i>
@@ -549,6 +665,17 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
                             <div className="btn-group btn-group-sm">
                               <button
                                 type="button"
+                                className="btn btn-outline-primary"
+                                title="Alterar Ordem de Serviço"
+                                onClick={() => {
+                                  handleStartEdit(item);
+                                  setIsAlterarOsModalOpen(true);
+                                }}
+                              >
+                                <i className="bi bi-arrow-left-right"></i>
+                              </button>
+                              <button
+                                type="button"
                                 className="btn btn-outline-secondary"
                                 title="Editar alocação"
                                 onClick={() => handleStartEdit(item)}
@@ -601,6 +728,15 @@ export const AlocacaoModal: React.FC<AlocacaoModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Modal de Pesquisa e Seleção para Alterar Ordem de Serviço */}
+      <PesquisaOrdemServicoModal
+        isOpen={isAlterarOsModalOpen}
+        onClose={() => setIsAlterarOsModalOpen(false)}
+        alocacao={alocacoes.find((a) => a.id === editingId) || null}
+        currentOs={ordemServico}
+        onConfirm={handleConfirmAlterarOs}
+      />
     </div>
   );
 };

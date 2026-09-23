@@ -319,6 +319,7 @@ export const apiService = {
       mes_referencia?: string;
       nome_profissional: string;
       percentual_alocacao: number;
+      nova_ordem_servico_id?: number;
     }
   ): Promise<AlocacaoPerfilOs> {
     const res = await fetch(`/api/v1/ordens-servico/${osId}/alocacoes/${alocacaoId}`, {
@@ -333,11 +334,68 @@ export const apiService = {
         nome_profissional: data.nome_profissional,
         percentualAlocacao: data.percentual_alocacao,
         percentual_alocacao: data.percentual_alocacao,
+        novaOrdemServicoId: data.nova_ordem_servico_id,
+        nova_ordem_servico_id: data.nova_ordem_servico_id,
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} ao atualizar alocação`);
     const resp = await res.json();
-    return normalizeAlocacao(resp, osId);
+    return normalizeAlocacao(resp, data.nova_ordem_servico_id ?? osId);
+  },
+
+  async alterarOrdemServicoAlocacao(
+    alocacaoId: number,
+    osOrigemId: number,
+    novaOrdemServicoId: number
+  ): Promise<AlocacaoPerfilOs> {
+    // 1. Tenta a rota de alteração direta de OS /api/v1/alocacoes/{id}/alterar-os
+    try {
+      const res = await fetch(`/api/v1/alocacoes/${alocacaoId}/alterar-os`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          novaOrdemServicoId,
+          nova_ordem_servico_id: novaOrdemServicoId,
+          ordemServicoId: novaOrdemServicoId,
+          ordem_servico_id: novaOrdemServicoId,
+        }),
+      });
+      if (res.ok) {
+        const resp = await res.json();
+        return normalizeAlocacao(resp, novaOrdemServicoId);
+      }
+    } catch {
+      // continua para fallback
+    }
+
+    // 2. Fallback: rota aninhada da OS com o parâmetro de nova Ordem de Serviço
+    const resFallback = await fetch(`/api/v1/ordens-servico/${osOrigemId}/alocacoes/${alocacaoId}/alterar-os`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        novaOrdemServicoId,
+        nova_ordem_servico_id: novaOrdemServicoId,
+      }),
+    });
+    if (resFallback.ok) {
+      const resp = await resFallback.json();
+      return normalizeAlocacao(resp, novaOrdemServicoId);
+    }
+
+    // 3. Fallback genérico: PUT tradicional com novaOrdemServicoId
+    const resPut = await fetch(`/api/v1/ordens-servico/${osOrigemId}/alocacoes/${alocacaoId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        novaOrdemServicoId,
+        nova_ordem_servico_id: novaOrdemServicoId,
+      }),
+    });
+    if (!resPut.ok) {
+      throw new Error(`HTTP ${resPut.status} ao transferir alocação para a nova Ordem de Serviço`);
+    }
+    const respFinal = await resPut.json();
+    return normalizeAlocacao(respFinal, novaOrdemServicoId);
   },
 
   async deleteAlocacao(osId: number, alocacaoId: number): Promise<void> {

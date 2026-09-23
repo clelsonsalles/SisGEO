@@ -89,6 +89,16 @@ public class OrdemServicoController {
         return ResponseEntity.ok(alocacaoService.atualizarAlocacao(alocacaoId, dto));
     }
 
+    @PutMapping("/{id}/alocacoes/{alocacaoId}/alterar-os")
+    @Operation(summary = "Alterar a Ordem de Serviço de uma alocação de perfil existente")
+    public ResponseEntity<AlocacaoResponseDTO> alterarOrdemServico(
+            @PathVariable Long id,
+            @PathVariable Long alocacaoId,
+            @RequestBody AlocacaoRequestDTO dto) {
+        Long novaOsId = dto.getNovaOrdemServicoId();
+        return ResponseEntity.ok(alocacaoService.alterarOrdemServico(alocacaoId, novaOsId));
+    }
+
     @DeleteMapping("/{id}/alocacoes/{alocacaoId}")
     @Operation(summary = "Remover alocação de perfil da Ordem de Serviço")
     public ResponseEntity<Void> removerAlocacao(

@@ -30,4 +30,9 @@ public class AlocacaoRequestDTO {
     @DecimalMax(value = "100.00", message = "Percentual máximo é 100%.")
     @Digits(integer = 3, fraction = 2, message = "O percentual de alocação deve ter no máximo 2 casas decimais.")
     private BigDecimal percentualAlocacao;
+
+    /**
+     * Opcional: ID da nova Ordem de Serviço caso deseje alterar a OS vinculada à alocação
+     */
+    private Long novaOrdemServicoId;
 }

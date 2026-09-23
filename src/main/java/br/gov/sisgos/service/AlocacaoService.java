@@ -72,6 +72,24 @@ public class AlocacaoService {
         alocacao.setPercentualAlocacao(dto.getPercentualAlocacao());
         alocacao.aplicarRegraDeNegocio(perfil);
 
+        if (dto.getNovaOrdemServicoId() != null) {
+            OrdemServico novaOs = ordemServicoRepository.findById(dto.getNovaOrdemServicoId())
+                    .orElseThrow(() -> new EntityNotFoundException("Nova Ordem de Serviço não encontrada com ID: " + dto.getNovaOrdemServicoId()));
+            alocacao.setOrdemServico(novaOs);
+        }
+
+        return AlocacaoResponseDTO.fromEntity(alocacao);
+    }
+
+    @Transactional
+    public AlocacaoResponseDTO alterarOrdemServico(Long alocacaoId, Long novaOsId) {
+        AlocacaoPerfilOs alocacao = alocacaoRepository.findById(alocacaoId)
+                .orElseThrow(() -> new EntityNotFoundException("Alocação não encontrada com ID: " + alocacaoId));
+
+        OrdemServico novaOs = ordemServicoRepository.findById(novaOsId)
+                .orElseThrow(() -> new EntityNotFoundException("Ordem de Serviço destino não encontrada com ID: " + novaOsId));
+
+        alocacao.setOrdemServico(novaOs);
         return AlocacaoResponseDTO.fromEntity(alocacao);
     }
 
