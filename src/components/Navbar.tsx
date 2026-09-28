@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSisgos } from '../context/SisgosContext';
 import { formatCurrency } from '../utils/formatters';
 import { generateSqlDump, downloadSqlFile } from '../utils/dumpGenerator';
+import { downloadDataManagementPdf } from '../utils/pdfGenerator';
 
 export type ActiveTab =
   | 'gestao-os'
@@ -14,7 +15,8 @@ export type ActiveTab =
   | 'admin-simulador'
   | 'admin-consultas'
   | 'admin-springboot'
-  | 'admin-dump';
+  | 'admin-dump'
+  | 'admin-pdf-relatorio';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -127,6 +129,23 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     }
   };
 
+  const handleQuickDownloadPdf = () => {
+    try {
+      downloadDataManagementPdf();
+      setFeedbackMsg({
+        type: 'success',
+        text: 'Relatório Oficial de Gestão de Dados (PDF) gerado e baixado com sucesso!',
+      });
+      setTimeout(() => setFeedbackMsg(null), 4000);
+    } catch {
+      setFeedbackMsg({
+        type: 'danger',
+        text: 'Falha ao gerar o arquivo PDF do Relatório de Gestão de Dados.',
+      });
+      setTimeout(() => setFeedbackMsg(null), 4000);
+    }
+  };
+
   const isParamActive = activeTab === 'param-perfis' || activeTab === 'param-projetos';
   const isAdminActive = [
     'admin-der',
@@ -136,6 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     'admin-consultas',
     'admin-springboot',
     'admin-dump',
+    'admin-pdf-relatorio',
   ].includes(activeTab);
 
   return (
@@ -298,7 +318,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   <i className="bi bi-shield-lock-fill text-info"></i>
                   <span>Administração</span>
                   <span className={`badge ${isAdminActive ? 'bg-dark text-info' : 'bg-secondary'}`}>
-                    7 Telas
+                    8 Telas
                   </span>
                 </button>
                 <button
@@ -318,7 +338,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               {isAdminDropdownOpen && (
                 <div
                   className="dropdown-menu dropdown-menu-dark show shadow-lg border-secondary position-absolute mt-1"
-                  style={{ minWidth: '270px', zIndex: 1050 }}
+                  style={{ minWidth: '280px', zIndex: 1050 }}
                 >
                   <h6 className="dropdown-header text-uppercase text-info small fw-bold">
                     Modelagem, Banco & Backend
@@ -430,6 +450,39 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                       onClick={(e) => {
                         e.stopPropagation();
                         handleQuickDownloadDump();
+                      }}
+                    >
+                      <i className="bi bi-download"></i>
+                    </span>
+                  </button>
+                  <hr className="dropdown-divider border-secondary my-1" />
+                  <button
+                    type="button"
+                    className={`dropdown-item py-2 d-flex align-items-center justify-content-between ${
+                      activeTab === 'admin-pdf-relatorio' ? 'active bg-rose-600 text-white fw-bold' : ''
+                    }`}
+                    onClick={() => handleSelectTab('admin-pdf-relatorio')}
+                  >
+                    <div className="d-flex align-items-center gap-2">
+                      <i className="bi bi-file-earmark-pdf-fill text-danger fs-6"></i>
+                      <div>
+                        <div className="d-flex align-items-center gap-1.5">
+                          <span className="fw-semibold">Relatório de Gestão (PDF)</span>
+                          <span className="badge bg-danger-subtle text-danger border border-danger-subtle" style={{ fontSize: '9px' }}>
+                            PDF
+                          </span>
+                        </div>
+                        <small className="opacity-75" style={{ fontSize: '11px' }}>DER, DDL, Dicionário & Consultas</small>
+                      </div>
+                    </div>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="badge bg-danger-subtle text-danger border border-danger-subtle p-1.5 ms-2 shadow-sm"
+                      title="Download direto do Relatório em PDF"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleQuickDownloadPdf();
                       }}
                     >
                       <i className="bi bi-download"></i>

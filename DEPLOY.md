@@ -103,7 +103,64 @@ Após os containers estarem com status `healthy`:
 
 ---
 
-### 5. Comandos Úteis de Operação e Manutenção
+### 5. Guia Completo de Monitoramento e Logs (Docker e Execução)
+
+Para auditar o comportamento da aplicação, rastrear requisições HTTP, inicialização do Spring Boot, transações JPA/Hibernate e o banco de dados PostgreSQL, utilize os comandos abaixo:
+
+#### A. Logs em Tempo Real (Streaming / Follow)
+```bash
+# Acompanhar logs de todos os containers simultaneamente em tempo real
+docker compose logs -f
+
+# Acompanhar logs em tempo real APENAS da aplicação (Spring Boot + Front-end)
+docker compose logs -f app
+
+# Acompanhar logs em tempo real APENAS do banco PostgreSQL
+docker compose logs -f postgres
+```
+
+#### B. Logs com Filtro de Quantidade e Timestamps
+```bash
+# Ver as últimas 100 linhas da aplicação e continuar acompanhando
+docker compose logs --tail=100 -f app
+
+# Exibir os logs com data e hora exata de cada linha gerada (Timestamps UTC/Local)
+docker compose logs -t -f app
+
+# Exibir os logs gerados nos últimos 15 ou 30 minutos
+docker compose logs --since 30m app
+```
+
+#### C. Filtragem de Erros e Exceções (Diagnóstico Rápido)
+```bash
+# Filtrar apenas erros, warnings e Stacktraces de exceções Java
+docker compose logs app | grep -Ei "ERROR|WARN|Exception|Caused by"
+
+# Filtrar tentativas de conexão do HikariCP com o banco PostgreSQL
+docker compose logs app | grep -i "HikariPool"
+
+# Filtrar comandos SQL e DDL executados pelo Hibernate
+docker compose logs app | grep -i "Hibernate:"
+```
+
+#### D. Visualização via Docker CLI Nativo (Sem Compose)
+Caso você queira consultar os containers diretamente pelo nome:
+```bash
+# Logs do container da aplicação
+docker logs -f --tail 200 sisgos-app
+
+# Logs do container do banco
+docker logs -f --tail 200 sisgos-postgres
+```
+
+#### E. Logs em Ambiente de Desenvolvimento Local (Node.js / Express / Vite)
+Se você estiver executando o sistema localmente em modo de desenvolvimento (sem Docker):
+- Os logs do servidor Express e do compilador Vite são emitidos diretamente no **stdout/stderr do terminal** onde o comando `npm run dev` está em execução.
+- No navegador, abra o **Console do Desenvolvedor** (tecla `F12` ou `Ctrl + Shift + I` / `Cmd + Option + I`) para inspecionar requisições fetch, respostas da API e avisos da interface React.
+
+---
+
+### 6. Comandos Úteis de Operação e Manutenção
 
 ```bash
 # Acessar o terminal interativo do PostgreSQL dentro do container

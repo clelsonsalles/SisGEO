@@ -1,83 +1,21 @@
 import React, { useState } from 'react';
-import { Database, TrendingUp, AlertTriangle, Users, Copy, Check } from 'lucide-react';
+import { Database, TrendingUp, AlertTriangle, Users, Copy, Check, PieChart } from 'lucide-react';
+import { QUERIES_LIST, QueryItem } from '../data/queriesData';
 
-interface QueryItem {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  sql: string;
-}
-
-const QUERIES_LIST: QueryItem[] = [
-  {
-    id: 'relatorio-consolidado',
-    title: 'Relatório Consolidado de OS por Secretaria & Projeto',
-    description: 'Agrupa as Ordens de Serviço totalizando a quantidade de profissionais alocados, percentual total e custo financeiro consolidado.',
-    icon: <TrendingUp className="w-4 h-4 text-emerald-400" />,
-    sql: `SELECT 
-    p.sigla_secretaria AS secretaria,
-    p.sigla_projeto AS projeto,
-    os.numero_os,
-    os.ano_referencia,
-    STRING_AGG(DISTINCT a.mes_referencia, ', ') AS meses_alocados,
-    os.situacao_sgc,
-    os.situacao_passivo_2026,
-    COUNT(a.id) AS total_profissionais,
-    COALESCE(SUM(a.percentual_alocacao), 0) AS total_percentual_alocado,
-    COALESCE(SUM(a.custo_alocacao), 0.00) AS custo_total_os
-FROM ordens_servico os
-JOIN projetos p ON p.id = os.projeto_id
-LEFT JOIN alocacoes_perfil_os a ON a.ordem_servico_id = os.id
-GROUP BY 
-    p.sigla_secretaria, p.sigla_projeto, os.id, os.numero_os, 
-    os.ano_referencia, os.situacao_sgc, os.situacao_passivo_2026
-ORDER BY p.sigla_secretaria, os.ano_referencia DESC, os.numero_os ASC;`
-  },
-  {
-    id: 'detalhamento-equipe',
-    title: 'Detalhamento de Equipe e Histórico Contratual por OS',
-    description: 'Lista cada profissional alocado em cada OS, evidenciando o snapshot do documento de referência e custo histórico.',
-    icon: <Users className="w-4 h-4 text-blue-400" />,
-    sql: `SELECT 
-    os.numero_os,
-    a.mes_referencia || '/' || os.ano_referencia AS competencia,
-    p.sigla_projeto,
-    a.nome_profissional,
-    pc.nome_perfil,
-    a.percentual_alocacao || '%' AS alocacao,
-    a.documento_referencia AS doc_ref_historico,
-    a.custo_mensal_perfil AS custo_mensal_snapshot,
-    a.custo_alocacao AS custo_calculado
-FROM alocacoes_perfil_os a
-JOIN ordens_servico os ON os.id = a.ordem_servico_id
-JOIN projetos p ON p.id = os.projeto_id
-JOIN perfis_contratados pc ON pc.id = a.perfil_contratado_id
-ORDER BY os.numero_os, a.mes_referencia, a.nome_profissional;`
-  },
-  {
-    id: 'painel-sgc-passivo',
-    title: 'Auditoria de Pendências no SGC & Passivo 2026',
-    description: 'Identifica ordens de serviço com pendências de alocação, entrega ou descrição no SGC, ou com passivo orçamentário registrado para 2026.',
-    icon: <AlertTriangle className="w-4 h-4 text-amber-400" />,
-    sql: `SELECT 
-    p.sigla_secretaria,
-    p.sigla_projeto,
-    os.numero_os,
-    os.ano_referencia,
-    CASE WHEN os.alocacao_sgc THEN 'OK' ELSE 'PENDENTE' END AS alocacao_sgc_status,
-    CASE WHEN os.entrega_sgc THEN 'OK' ELSE 'PENDENTE' END AS entrega_sgc_status,
-    CASE WHEN os.descricao_sgc THEN 'OK' ELSE 'PENDENTE' END AS descricao_sgc_status,
-    os.situacao_passivo_2026
-FROM ordens_servico os
-JOIN projetos p ON p.id = os.projeto_id
-WHERE os.alocacao_sgc = FALSE 
-   OR os.entrega_sgc = FALSE 
-   OR os.descricao_sgc = FALSE
-   OR os.situacao_passivo_2026 IS NOT NULL
-ORDER BY p.sigla_secretaria, os.numero_os;`
+const getQueryIcon = (id: string) => {
+  switch (id) {
+    case 'relatorio-consolidado':
+      return <TrendingUp className="w-4 h-4 text-emerald-400" />;
+    case 'detalhamento-equipe':
+      return <Users className="w-4 h-4 text-blue-400" />;
+    case 'painel-sgc-passivo':
+      return <AlertTriangle className="w-4 h-4 text-amber-400" />;
+    case 'distribuicao-por-perfil':
+      return <PieChart className="w-4 h-4 text-violet-400" />;
+    default:
+      return <Database className="w-4 h-4 text-indigo-400" />;
   }
-];
+};
 
 export const QueriesViewer: React.FC = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -106,7 +44,7 @@ export const QueriesViewer: React.FC = () => {
             <div className="p-4 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-slate-800 border border-slate-700">
-                  {q.icon}
+                  {getQueryIcon(q.id)}
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-slate-100">{q.title}</h4>

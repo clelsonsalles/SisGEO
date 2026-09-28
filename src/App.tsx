@@ -12,6 +12,7 @@ import { DataDictionary } from './components/DataDictionary';
 import { BusinessRuleSimulator } from './components/BusinessRuleSimulator';
 import { QueriesViewer } from './components/QueriesViewer';
 import { DatabaseDumpViewer } from './components/DatabaseDumpViewer';
+import { DataManagementReportViewer } from './components/DataManagementReportViewer';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('gestao-os');
@@ -23,6 +24,7 @@ export default function App() {
     'admin-simulador',
     'admin-consultas',
     'admin-dump',
+    'admin-pdf-relatorio',
   ].includes(activeTab);
 
   return (
@@ -66,6 +68,7 @@ export default function App() {
                       {activeTab === 'admin-simulador' && 'Simulador de Regra & Trigger de Banco'}
                       {activeTab === 'admin-consultas' && 'Consultas SQL & Relatórios Gerenciais'}
                       {activeTab === 'admin-dump' && 'Extração de DUMP Completo (.sql)'}
+                      {activeTab === 'admin-pdf-relatorio' && 'Relatório de Gestão de Dados (PDF)'}
                     </span>
                   </div>
                   <span className="text-slate-500 small d-none d-sm-inline">
@@ -79,6 +82,7 @@ export default function App() {
                 {activeTab === 'admin-simulador' && <BusinessRuleSimulator />}
                 {activeTab === 'admin-consultas' && <QueriesViewer />}
                 {activeTab === 'admin-dump' && <DatabaseDumpViewer />}
+                {activeTab === 'admin-pdf-relatorio' && <DataManagementReportViewer onNavigateTab={setActiveTab} />}
               </div>
             </div>
           )}
