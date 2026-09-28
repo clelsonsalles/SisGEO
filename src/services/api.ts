@@ -178,13 +178,18 @@ export const apiService = {
       if (res.ok) {
         rawList = await res.json();
       } else {
-        // Se a rota /detalhadas não existir (ex: HTTP 404 em backend externo), faz fallback para a rota padrão /api/v1/ordens-servico
-        console.warn(`[SisGOS] /api/v1/ordens-servico/detalhadas retornou ${res.status}. Tentando /api/v1/ordens-servico...`);
-        const fallbackRes = await fetch('/api/v1/ordens-servico');
-        if (fallbackRes.ok) {
-          rawList = await fallbackRes.json();
+        // Fallback 1: tentar /api/v1/ordens-servico?detalhadas=true
+        const resQuery = await fetch('/api/v1/ordens-servico?detalhadas=true');
+        if (resQuery.ok) {
+          rawList = await resQuery.json();
         } else {
-          throw new Error(`HTTP ${fallbackRes.status} ao carregar ordens de serviço`);
+          // Fallback 2: tentar rota básica /api/v1/ordens-servico
+          const fallbackRes = await fetch('/api/v1/ordens-servico');
+          if (fallbackRes.ok) {
+            rawList = await fallbackRes.json();
+          } else {
+            throw new Error(`HTTP ${fallbackRes.status} ao carregar ordens de serviço`);
+          }
         }
       }
     } catch (err) {
@@ -209,6 +214,27 @@ export const apiService = {
           alocacoes.push(normalizeAlocacao(aloc, item.id));
         }
       }
+    }
+
+    // Se nenhum item continha alocações aninhadas (ex: endpoint básico da OS sem JOIN), busca alocações individualmente
+    if (ordens.length > 0 && alocacoes.length === 0) {
+      await Promise.all(
+        ordens.map(async (os) => {
+          try {
+            const alocRes = await fetch(`/api/v1/ordens-servico/${os.id}/alocacoes`);
+            if (alocRes.ok) {
+              const alocsData = await alocRes.json();
+              if (Array.isArray(alocsData)) {
+                for (const a of alocsData) {
+                  alocacoes.push(normalizeAlocacao(a, os.id));
+                }
+              }
+            }
+          } catch {
+            // ignora erro silencioso no fallback individual
+          }
+        })
+      );
     }
 
     return { ordens, alocacoes };
@@ -268,17 +294,29 @@ export const apiService = {
   },
 
   async getSituacoesSgc(): Promise<string[]> {
-    const res = await fetch('/api/v1/ordens-servico/situacoes-sgc');
-    if (!res.ok) throw new Error(`HTTP ${res.status} ao obter situações SGC`);
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    try {
+      const res = await fetch('/api/v1/ordens-servico/situacoes-sgc');
+      if (res.ok) {
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      }
+    } catch {
+      // fallback gracioso se o backend não suportar
+    }
+    return [];
   },
 
   async getSituacoesPassivo(): Promise<string[]> {
-    const res = await fetch('/api/v1/ordens-servico/situacoes-passivo');
-    if (!res.ok) throw new Error(`HTTP ${res.status} ao obter situações Passivo 2026`);
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    try {
+      const res = await fetch('/api/v1/ordens-servico/situacoes-passivo');
+      if (res.ok) {
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      }
+    } catch {
+      // fallback gracioso se o backend não suportar
+    }
+    return [];
   },
 
   // 4. Alocações (N:N)

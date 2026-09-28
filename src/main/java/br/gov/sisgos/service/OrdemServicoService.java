@@ -92,6 +92,20 @@ public class OrdemServicoService {
         return OrdemServicoResponseDTO.fromEntity(os);
     }
 
+    @Transactional(readOnly = true)
+    public List<String> obterSituacoesSgc() {
+        return ordemServicoRepository.findDistinctSituacaoSgc();
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> obterSituacoesPassivo() {
+        List<String> list = ordemServicoRepository.findDistinctSituacaoPassivo2026();
+        if (list.isEmpty()) {
+            return List.of("NULL");
+        }
+        return list;
+    }
+
     @Transactional
     public void excluir(Long id) {
         if (!ordemServicoRepository.existsById(id)) {

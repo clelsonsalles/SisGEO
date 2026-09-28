@@ -57,8 +57,75 @@ app.get('/api/v1/health', (req, res) => {
   });
 });
 
+// Helper: Calculate full detailed OS list
+function getOrdensDetalhadas() {
+  return ordensServico.map((os) => {
+    const proj = projetos.find((p) => p.id === os.projeto_id);
+    const osAlocacoes = alocacoes
+      .filter((a) => a.ordem_servico_id === os.id)
+      .map((a) => {
+        const perf = perfis.find((p) => p.id === a.perfil_contratado_id);
+        return {
+          id: a.id,
+          ordem_servico_id: a.ordem_servico_id,
+          perfil_contratado_id: a.perfil_contratado_id,
+          mes_referencia: a.mes_referencia,
+          nome_profissional: a.nome_profissional,
+          percentual_alocacao: a.percentual_alocacao,
+          documento_referencia: a.documento_referencia,
+          custo_mensal_perfil: a.custo_mensal_perfil,
+          custo_alocacao: a.custo_alocacao,
+          criado_em: a.criado_em,
+          perfil: perf
+            ? {
+                id: perf.id,
+                item_contratacao: perf.item_contratacao,
+                nome_perfil: perf.nome_perfil,
+                vigente: perf.vigente,
+                custo_mensal_perfil: perf.custo_mensal_perfil,
+                quantidade_mensal_contratada: perf.quantidade_mensal_contratada,
+              }
+            : null,
+        };
+      });
+
+    const valorTotal = osAlocacoes.reduce((sum, a) => sum + (a.custo_alocacao || 0), 0);
+
+    return {
+      id: os.id,
+      numero_os: os.numero_os,
+      ano_referencia: os.ano_referencia,
+      alocacao_sgc: os.alocacao_sgc,
+      entrega_sgc: os.entrega_sgc,
+      descricao_sgc: os.descricao_sgc,
+      situacao_sgc: os.situacao_sgc,
+      situacao_passivo_2026: os.situacao_passivo_2026,
+      criado_em: os.criado_em,
+      projeto_id: os.projeto_id,
+      projeto: proj
+        ? {
+            id: proj.id,
+            nome_projeto: proj.nome_projeto,
+            sigla_projeto: proj.sigla_projeto,
+            descricao: proj.descricao,
+            nome_secretaria: proj.nome_secretaria,
+            sigla_secretaria: proj.sigla_secretaria,
+            criado_em: proj.criado_em,
+          }
+        : null,
+      total_alocacoes: osAlocacoes.length,
+      valor_total_calculado: Number(valorTotal.toFixed(2)),
+      alocacoes: osAlocacoes,
+    };
+  });
+}
+
 // 2. Ordens de Serviço
 app.get('/api/v1/ordens-servico', (req, res) => {
+  if (req.query.detalhadas === 'true' || req.query.detalhes === 'true' || req.query.completa === 'true') {
+    return res.json(getOrdensDetalhadas());
+  }
+
   const result = ordensServico.map((os) => {
     const proj = projetos.find((p) => p.id === os.projeto_id);
     const osAlocacoes = alocacoes.filter((a) => a.ordem_servico_id === os.id);
@@ -144,68 +211,8 @@ app.post('/api/v1/ordens-servico', (req, res) => {
 });
 
 // GET /api/v1/ordens-servico/detalhadas - Listar todas as OSs com dados da OS, do Projeto e das Alocações de Perfil
-app.get('/api/v1/ordens-servico/detalhadas', (req, res) => {
-  const result = ordensServico.map((os) => {
-    const proj = projetos.find((p) => p.id === os.projeto_id);
-    const osAlocacoes = alocacoes
-      .filter((a) => a.ordem_servico_id === os.id)
-      .map((a) => {
-        const perf = perfis.find((p) => p.id === a.perfil_contratado_id);
-        return {
-          id: a.id,
-          ordem_servico_id: a.ordem_servico_id,
-          perfil_contratado_id: a.perfil_contratado_id,
-          mes_referencia: a.mes_referencia,
-          nome_profissional: a.nome_profissional,
-          percentual_alocacao: a.percentual_alocacao,
-          documento_referencia: a.documento_referencia,
-          custo_mensal_perfil: a.custo_mensal_perfil,
-          custo_alocacao: a.custo_alocacao,
-          criado_em: a.criado_em,
-          perfil: perf
-            ? {
-                id: perf.id,
-                item_contratacao: perf.item_contratacao,
-                nome_perfil: perf.nome_perfil,
-                vigente: perf.vigente,
-                custo_mensal_perfil: perf.custo_mensal_perfil,
-                quantidade_mensal_contratada: perf.quantidade_mensal_contratada,
-              }
-            : null,
-        };
-      });
-
-    const valorTotal = osAlocacoes.reduce((sum, a) => sum + (a.custo_alocacao || 0), 0);
-
-    return {
-      id: os.id,
-      numero_os: os.numero_os,
-      ano_referencia: os.ano_referencia,
-      alocacao_sgc: os.alocacao_sgc,
-      entrega_sgc: os.entrega_sgc,
-      descricao_sgc: os.descricao_sgc,
-      situacao_sgc: os.situacao_sgc,
-      situacao_passivo_2026: os.situacao_passivo_2026,
-      criado_em: os.criado_em,
-      projeto_id: os.projeto_id,
-      projeto: proj
-        ? {
-            id: proj.id,
-            nome_projeto: proj.nome_projeto,
-            sigla_projeto: proj.sigla_projeto,
-            descricao: proj.descricao,
-            nome_secretaria: proj.nome_secretaria,
-            sigla_secretaria: proj.sigla_secretaria,
-            criado_em: proj.criado_em,
-          }
-        : null,
-      total_alocacoes: osAlocacoes.length,
-      valor_total_calculado: Number(valorTotal.toFixed(2)),
-      alocacoes: osAlocacoes,
-    };
-  });
-
-  res.json(result);
+app.get(['/api/v1/ordens-servico/detalhadas', '/api/v1/ordens-servico/detalhes'], (req, res) => {
+  res.json(getOrdensDetalhadas());
 });
 
 // 2.1. Situações no SGC existentes no banco de dados
@@ -427,6 +434,19 @@ app.post('/api/v1/ordens-servico/:id/alocacoes', (req, res) => {
   });
 });
 
+app.get('/api/v1/alocacoes/:alocacaoId', (req, res) => {
+  const alocacaoId = Number(req.params.alocacaoId);
+  const aloc = alocacoes.find((a) => a.id === alocacaoId);
+  if (!aloc) {
+    return res.status(404).json({ error: `Alocação com ID ${alocacaoId} não encontrada.` });
+  }
+  const perf = perfis.find((p) => p.id === aloc.perfil_contratado_id);
+  res.json({
+    ...aloc,
+    perfil: perf || null,
+  });
+});
+
 app.put('/api/v1/alocacoes/:alocacaoId/alterar-os', (req, res) => {
   const alocacaoId = Number(req.params.alocacaoId);
   const alocIndex = alocacoes.findIndex((a) => a.id === alocacaoId);
@@ -508,7 +528,7 @@ app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId/alterar-os', (req, res
   res.json(alocacoes[alocIndex]);
 });
 
-app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
+app.put(['/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', '/api/v1/alocacoes/:alocacaoId'], (req, res) => {
   const alocacaoId = Number(req.params.alocacaoId);
   const alocIndex = alocacoes.findIndex((a) => a.id === alocacaoId);
   if (alocIndex === -1) {
@@ -591,23 +611,7 @@ app.put('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
   res.json(alocacoes[alocIndex]);
 });
 
-app.delete('/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', (req, res) => {
-  const alocacaoId = Number(req.params.alocacaoId);
-  const index = alocacoes.findIndex((a) => a.id === alocacaoId);
-  if (index === -1) {
-    return res.status(404).json({ error: `Alocação com ID ${alocacaoId} não encontrada.` });
-  }
-
-  const osId = alocacoes[index].ordem_servico_id;
-  alocacoes.splice(index, 1);
-
-  res.json({
-    message: `Alocação #${alocacaoId} removida com sucesso.`,
-    novo_total_os: Number(getOsTotal(osId).toFixed(2)),
-  });
-});
-
-app.delete('/api/v1/ordens-servico/alocacoes/:alocacaoId', (req, res) => {
+app.delete(['/api/v1/ordens-servico/:id/alocacoes/:alocacaoId', '/api/v1/ordens-servico/alocacoes/:alocacaoId', '/api/v1/alocacoes/:alocacaoId'], (req, res) => {
   const alocacaoId = Number(req.params.alocacaoId);
   const index = alocacoes.findIndex((a) => a.id === alocacaoId);
   if (index === -1) {

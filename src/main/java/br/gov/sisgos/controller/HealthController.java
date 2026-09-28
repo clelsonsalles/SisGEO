@@ -35,6 +35,9 @@ public class HealthController {
         endpoints.put("perfis_contratados", "/api/v1/perfis-contratados");
         endpoints.put("dashboard", "/api/v1/dashboard/resumo");
         endpoints.put("profissionais", "/api/v1/ordens-servico/profissionais/nomes-distintos");
+        endpoints.put("situacoes_sgc", "/api/v1/ordens-servico/situacoes-sgc");
+        endpoints.put("situacoes_passivo", "/api/v1/ordens-servico/situacoes-passivo");
+        endpoints.put("alocacoes", "/api/v1/alocacoes");
         resp.put("endpoints", endpoints);
 
         return ResponseEntity.ok(resp);

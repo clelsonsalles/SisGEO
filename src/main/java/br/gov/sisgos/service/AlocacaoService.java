@@ -24,6 +24,13 @@ public class AlocacaoService {
     private final PerfilContratadoRepository perfilRepository;
 
     @Transactional(readOnly = true)
+    public AlocacaoResponseDTO buscarPorId(Long alocacaoId) {
+        return alocacaoRepository.findById(alocacaoId)
+                .map(AlocacaoResponseDTO::fromEntity)
+                .orElseThrow(() -> new EntityNotFoundException("Alocação não encontrada com ID: " + alocacaoId));
+    }
+
+    @Transactional(readOnly = true)
     public List<AlocacaoResponseDTO> listarPorOrdemServico(Long osId) {
         return alocacaoRepository.findByOrdemServicoId(osId)
                 .stream()
