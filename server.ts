@@ -8,6 +8,7 @@ import {
   INITIAL_ALOCACOES,
 } from './src/data/initialData';
 import { Projeto, PerfilContratado, OrdemServico, AlocacaoPerfilOs, MesReferencia, MESES_REFERENCIA as MESES_VALIDOS } from './src/types/models';
+import { generateSqlDump } from './src/utils/dumpGenerator';
 
 const app = express();
 const PORT = 3000;
@@ -53,6 +54,8 @@ app.get('/api/v1/health', (req, res) => {
       profissionais: '/api/v1/ordens-servico/profissionais/nomes-distintos',
       situacoes_sgc: '/api/v1/ordens-servico/situacoes-sgc',
       situacoes_passivo: '/api/v1/ordens-servico/situacoes-passivo',
+      alocacoes: '/api/v1/alocacoes',
+      dump_sql: '/api/v1/admin/dump-sql',
     },
   });
 });
@@ -864,6 +867,28 @@ app.post('/api/v1/admin/clear-data', (req, res) => {
   ordensServico = [];
   alocacoes = [];
   res.json({ success: true, message: 'Todos os dados foram excluídos e as tabelas estão limpas.' });
+});
+
+// 10. Administração: Extrair DUMP completo da base de dados (.sql)
+app.get('/api/v1/admin/dump-sql', (req, res) => {
+  const includeDdl = req.query.ddl !== 'false';
+  const includeData = req.query.data !== 'false';
+  const includeTriggers = req.query.triggers !== 'false';
+  const includeDrop = req.query.drop !== 'false';
+
+  const dumpSql = generateSqlDump(projetos, perfis, ordensServico, alocacoes, {
+    includeDdl,
+    includeData,
+    includeTriggers,
+    includeDrop,
+  });
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const filename = `dump_sisgos_${timestamp}.sql`;
+
+  res.setHeader('Content-Type', 'application/sql; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(dumpSql);
 });
 
 /* =========================================================================

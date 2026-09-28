@@ -265,6 +265,15 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
                     <i className="bi bi-cup-hot-fill text-dark"></i>
                     <span>Spring Boot (Java)</span>
                   </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-success text-white fw-bold d-flex align-items-center gap-1 py-1 px-2 shadow-sm"
+                    onClick={() => onNavigate('admin-dump')}
+                    title="Extrair DUMP completo da base de dados (.sql)"
+                  >
+                    <i className="bi bi-database-down"></i>
+                    <span>DUMP SQL (.sql)</span>
+                  </button>
                 </div>
               </div>
             </div>

@@ -37,4 +37,13 @@ public class AdminController {
                 "message", "Base de dados PostgreSQL restaurada com a semente de dados padrão (Seed) com sucesso."
         ));
     }
+
+    @GetMapping(value = "/dump-sql", produces = "application/sql")
+    @Operation(summary = "Extrair DUMP completo da base de dados PostgreSQL em arquivo .sql")
+    public ResponseEntity<String> extrairDumpSql() {
+        String dump = adminService.gerarDumpSql();
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"dump_sisgos.sql\"")
+                .body(dump);
+    }
 }

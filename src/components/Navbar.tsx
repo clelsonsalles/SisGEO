@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSisgos } from '../context/SisgosContext';
 import { formatCurrency } from '../utils/formatters';
+import { generateSqlDump, downloadSqlFile } from '../utils/dumpGenerator';
 
 export type ActiveTab =
   | 'gestao-os'
@@ -12,7 +13,8 @@ export type ActiveTab =
   | 'admin-dicionario'
   | 'admin-simulador'
   | 'admin-consultas'
-  | 'admin-springboot';
+  | 'admin-springboot'
+  | 'admin-dump';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -106,6 +108,25 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     setTimeout(() => setFeedbackMsg(null), 5000);
   };
 
+  const handleQuickDownloadDump = () => {
+    try {
+      const dump = generateSqlDump(projetos, perfis, ordensServico, alocacoes);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      downloadSqlFile(dump, `dump_sisgos_${timestamp}.sql`);
+      setFeedbackMsg({
+        type: 'success',
+        text: 'DUMP completo da base de dados (.sql) extraído e baixado com sucesso!',
+      });
+      setTimeout(() => setFeedbackMsg(null), 4000);
+    } catch {
+      setFeedbackMsg({
+        type: 'danger',
+        text: 'Falha ao extrair o arquivo DUMP SQL da base de dados.',
+      });
+      setTimeout(() => setFeedbackMsg(null), 4000);
+    }
+  };
+
   const isParamActive = activeTab === 'param-perfis' || activeTab === 'param-projetos';
   const isAdminActive = [
     'admin-der',
@@ -114,6 +135,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     'admin-simulador',
     'admin-consultas',
     'admin-springboot',
+    'admin-dump',
   ].includes(activeTab);
 
   return (
@@ -276,7 +298,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   <i className="bi bi-shield-lock-fill text-info"></i>
                   <span>Administração</span>
                   <span className={`badge ${isAdminActive ? 'bg-dark text-info' : 'bg-secondary'}`}>
-                    6 Telas
+                    7 Telas
                   </span>
                 </button>
                 <button
@@ -380,6 +402,39 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                       <small className="opacity-75" style={{ fontSize: '11px' }}>Controllers, Services & JPA</small>
                     </div>
                   </button>
+                  <hr className="dropdown-divider border-secondary my-1" />
+                  <button
+                    type="button"
+                    className={`dropdown-item py-2 d-flex align-items-center justify-content-between ${
+                      activeTab === 'admin-dump' ? 'active bg-emerald-600 text-white fw-bold' : ''
+                    }`}
+                    onClick={() => handleSelectTab('admin-dump')}
+                  >
+                    <div className="d-flex align-items-center gap-2">
+                      <i className="bi bi-database-down text-emerald-400 fs-6"></i>
+                      <div>
+                        <div className="d-flex align-items-center gap-1.5">
+                          <span className="fw-semibold">Extrair DUMP SQL</span>
+                          <span className="badge bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" style={{ fontSize: '9px' }}>
+                            .sql
+                          </span>
+                        </div>
+                        <small className="opacity-75" style={{ fontSize: '11px' }}>Backup completo (DDL + Dados atuais)</small>
+                      </div>
+                    </div>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="badge bg-success-subtle text-success border border-success-subtle p-1.5 ms-2 shadow-sm"
+                      title="Download direto do arquivo .sql"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleQuickDownloadDump();
+                      }}
+                    >
+                      <i className="bi bi-download"></i>
+                    </span>
+                  </button>
                 </div>
               )}
             </div>
@@ -397,6 +452,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             </div>
 
             <div className="d-flex align-items-center gap-1">
+              <button
+                type="button"
+                id="btn-extrair-dump-sql-nav"
+                className="btn btn-outline-success btn-sm text-emerald-300 d-flex align-items-center justify-content-center gap-1 py-1 px-2 border-success-subtle shadow-sm"
+                style={{ fontSize: '11px', lineHeight: '1.2' }}
+                title="Extrair DUMP completo da base de dados (.sql)"
+                onClick={handleQuickDownloadDump}
+                disabled={isSyncing || isActionInProgress}
+              >
+                <i className="bi bi-database-down"></i>
+                <span className="fw-semibold">DUMP .sql</span>
+              </button>
+
               <button
                 type="button"
                 id="btn-sincronizar-banco"
@@ -771,6 +839,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               >
                 <i className="bi bi-cup-hot-fill"></i>
                 <span>Spring Boot (Java)</span>
+              </button>
+
+              <button
+                type="button"
+                className={`btn btn-sm py-1 px-2 px-md-3 fw-semibold rounded-pill d-flex align-items-center gap-1 ${
+                  activeTab === 'admin-dump'
+                    ? 'btn-success text-white shadow-sm fw-bold'
+                    : 'btn-outline-success text-emerald-300 border-success-subtle'
+                }`}
+                onClick={() => handleSelectTab('admin-dump')}
+                title="Extrair DUMP SQL completo da base de dados (.sql)"
+              >
+                <i className="bi bi-database-down"></i>
+                <span>DUMP SQL (.sql)</span>
               </button>
 
               <button

@@ -11,6 +11,7 @@ import { DDLViewer } from './components/DDLViewer';
 import { DataDictionary } from './components/DataDictionary';
 import { BusinessRuleSimulator } from './components/BusinessRuleSimulator';
 import { QueriesViewer } from './components/QueriesViewer';
+import { DatabaseDumpViewer } from './components/DatabaseDumpViewer';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('gestao-os');
@@ -21,6 +22,7 @@ export default function App() {
     'admin-dicionario',
     'admin-simulador',
     'admin-consultas',
+    'admin-dump',
   ].includes(activeTab);
 
   return (
@@ -63,6 +65,7 @@ export default function App() {
                       {activeTab === 'admin-dicionario' && 'Dicionário de Dados & Metadados'}
                       {activeTab === 'admin-simulador' && 'Simulador de Regra & Trigger de Banco'}
                       {activeTab === 'admin-consultas' && 'Consultas SQL & Relatórios Gerenciais'}
+                      {activeTab === 'admin-dump' && 'Extração de DUMP Completo (.sql)'}
                     </span>
                   </div>
                   <span className="text-slate-500 small d-none d-sm-inline">
@@ -75,6 +78,7 @@ export default function App() {
                 {activeTab === 'admin-dicionario' && <DataDictionary />}
                 {activeTab === 'admin-simulador' && <BusinessRuleSimulator />}
                 {activeTab === 'admin-consultas' && <QueriesViewer />}
+                {activeTab === 'admin-dump' && <DatabaseDumpViewer />}
               </div>
             </div>
           )}

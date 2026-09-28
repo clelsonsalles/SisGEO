@@ -468,4 +468,17 @@ export const apiService = {
     if (!res.ok) throw new Error(`HTTP ${res.status} ao restaurar semente do banco`);
     return await res.json();
   },
+
+  async adminGetSqlDump(options?: { ddl?: boolean; data?: boolean; triggers?: boolean; drop?: boolean }): Promise<string> {
+    const params = new URLSearchParams();
+    if (options?.ddl !== undefined) params.append('ddl', String(options.ddl));
+    if (options?.data !== undefined) params.append('data', String(options.data));
+    if (options?.triggers !== undefined) params.append('triggers', String(options.triggers));
+    if (options?.drop !== undefined) params.append('drop', String(options.drop));
+
+    const url = `/api/v1/admin/dump-sql${params.toString() ? `?${params.toString()}` : ''}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status} ao extrair DUMP SQL`);
+    return await res.text();
+  },
 };
