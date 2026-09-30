@@ -191,7 +191,7 @@ app.post('/api/v1/ordens-servico', (req, res) => {
     const passivoInput = situacao_passivo_2026 ?? situacaoPassivo2026;
     const finalPassivo = (passivoInput !== undefined && passivoInput !== null && String(passivoInput).trim() !== '')
       ? String(passivoInput).trim()
-      : 'NULL';
+      : null;
 
     const newOs: OrdemServico = {
       id: ++nextOsId,
@@ -236,10 +236,8 @@ app.get('/api/v1/ordens-servico/situacoes-passivo', (req, res) => {
   const valores = Array.from(
     new Set(
       ordensServico
-        .map((os) => {
-          const v = (os.situacao_passivo_2026 || '').trim();
-          return !v || v.toUpperCase() === 'NULL' ? 'NULL' : v;
-        })
+        .map((os) => (os.situacao_passivo_2026 || '').trim())
+        .filter((v): v is string => Boolean(v) && v.toUpperCase() !== 'NULL')
     )
   ).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
@@ -310,7 +308,7 @@ app.put('/api/v1/ordens-servico/:id', (req, res) => {
     situacao_passivo_2026: (situacao_passivo_2026 !== undefined || situacaoPassivo2026 !== undefined)
       ? ((situacao_passivo_2026 ?? situacaoPassivo2026) && String(situacao_passivo_2026 ?? situacaoPassivo2026).trim() !== ''
           ? String(situacao_passivo_2026 ?? situacaoPassivo2026).trim()
-          : 'NULL')
+          : null)
       : current.situacao_passivo_2026,
     ne_planejamento: (ne_planejamento !== undefined || nePlanejamento !== undefined)
       ? (String(ne_planejamento ?? nePlanejamento ?? '').trim() || null)

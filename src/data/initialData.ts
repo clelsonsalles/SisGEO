@@ -172,7 +172,7 @@ export const INITIAL_ORDENS_SERVICO: OrdemServico[] = [
     entrega_sgc: false,
     descricao_sgc: false,
     situacao_sgc: 'Em Definição',
-    situacao_passivo_2026: 'NULL',
+    situacao_passivo_2026: null,
     ne_planejamento: null,
     ne_faturamento: null,
     processo_sei_pagamento: null,

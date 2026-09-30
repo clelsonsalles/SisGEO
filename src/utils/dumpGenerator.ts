@@ -278,7 +278,7 @@ export function generateSqlDump(
       lines.push('INSERT INTO ordens_servico (id, projeto_id, numero_os, ano_referencia, alocacao_sgc, entrega_sgc, descricao_sgc, situacao_sgc, situacao_passivo_2026, ne_planejamento, ne_faturamento, processo_sei_pagamento, criado_em) VALUES');
       const osRows = ordens.map((os, idx) => {
         const isLast = idx === ordens.length - 1;
-        const passivo = (os.situacao_passivo_2026 && os.situacao_passivo_2026.trim() !== '') ? os.situacao_passivo_2026.trim() : 'NULL';
+        const passivo = (os.situacao_passivo_2026 && os.situacao_passivo_2026.trim() !== '') ? os.situacao_passivo_2026.trim() : null;
         const row = `(${os.id}, ${os.projeto_id}, ${os.numero_os}, ${os.ano_referencia}, ${sqlBool(os.alocacao_sgc)}, ${sqlBool(os.entrega_sgc)}, ${sqlBool(os.descricao_sgc)}, ${sqlStr(os.situacao_sgc)}, ${sqlStr(passivo)}, ${sqlStr(os.ne_planejamento)}, ${sqlStr(os.ne_faturamento)}, ${sqlStr(os.processo_sei_pagamento)}, ${sqlTimestamp(os.criado_em)})`;
         return `  ${row}${isLast ? ';' : ','}`;
       });

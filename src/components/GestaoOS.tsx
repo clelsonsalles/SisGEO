@@ -59,8 +59,8 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
       const osAlocs = alocacoes.filter((a) => a.ordem_servico_id === os.id);
       const mesesAloc = osAlocs.map((a) => a.mes_referencia.toLowerCase());
 
-      // Passivo 2026: se nulo ou vazio no banco de dados, trata como 'NULL'
-      const osPassivo = (os.situacao_passivo_2026 || '').trim() || 'NULL';
+      // Passivo 2026
+      const osPassivo = (os.situacao_passivo_2026 || '').trim();
 
       // Search match
       const searchLower = searchQuery.toLowerCase();
@@ -678,8 +678,8 @@ export const GestaoOS: React.FC<GestaoOSProps> = ({ onNavigate }) => {
                             {os.situacao_passivo_2026}
                           </span>
                         ) : (
-                          <span className="badge bg-secondary-subtle text-secondary border px-2 py-1 font-monospace" title="Sem valor cadastrado no banco de dados (NULL)">
-                            NULL
+                          <span className="text-muted small ps-2" title="Sem valor de passivo cadastrado no banco de dados">
+                            —
                           </span>
                         )}
                       </td>

@@ -57,7 +57,7 @@ public class OrdemServicoService {
                 .entregaSgc(Boolean.TRUE.equals(dto.getEntregaSgc()))
                 .descricaoSgc(Boolean.TRUE.equals(dto.getDescricaoSgc()))
                 .situacaoSgc(dto.getSituacaoSgc() != null ? dto.getSituacaoSgc() : "Em Execução")
-                .situacaoPassivo2026(dto.getSituacaoPassivo2026() != null && !dto.getSituacaoPassivo2026().isBlank() ? dto.getSituacaoPassivo2026().trim() : "NULL")
+                .situacaoPassivo2026(dto.getSituacaoPassivo2026() != null && !dto.getSituacaoPassivo2026().isBlank() && !"NULL".equalsIgnoreCase(dto.getSituacaoPassivo2026().trim()) ? dto.getSituacaoPassivo2026().trim() : null)
                 .nePlanejamento(dto.getNePlanejamento() != null ? dto.getNePlanejamento().trim() : null)
                 .neFaturamento(dto.getNeFaturamento() != null ? dto.getNeFaturamento().trim() : null)
                 .processoSeiPagamento(dto.getProcessoSeiPagamento() != null ? dto.getProcessoSeiPagamento().trim() : null)
@@ -84,7 +84,7 @@ public class OrdemServicoService {
         os.setEntregaSgc(Boolean.TRUE.equals(dto.getEntregaSgc()));
         os.setDescricaoSgc(Boolean.TRUE.equals(dto.getDescricaoSgc()));
         os.setSituacaoSgc(dto.getSituacaoSgc());
-        os.setSituacaoPassivo2026(dto.getSituacaoPassivo2026());
+        os.setSituacaoPassivo2026(dto.getSituacaoPassivo2026() != null && !dto.getSituacaoPassivo2026().isBlank() && !"NULL".equalsIgnoreCase(dto.getSituacaoPassivo2026().trim()) ? dto.getSituacaoPassivo2026().trim() : null);
         os.setNePlanejamento(dto.getNePlanejamento() != null ? dto.getNePlanejamento().trim() : null);
         os.setNeFaturamento(dto.getNeFaturamento() != null ? dto.getNeFaturamento().trim() : null);
         os.setProcessoSeiPagamento(dto.getProcessoSeiPagamento() != null ? dto.getProcessoSeiPagamento().trim() : null);

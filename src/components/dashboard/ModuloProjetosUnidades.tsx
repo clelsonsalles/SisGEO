@@ -81,17 +81,28 @@ export const ModuloProjetosUnidades: React.FC<ModuloProjetosUnidadesProps> = ({ 
   const opcoesSituacoesPassivo: OpcaoFiltro[] = useMemo(() => {
     const situacoes = Array.from(
       new Set(
-        ordensServico.map((os) => {
-          const v = (os.situacao_passivo_2026 || '').trim();
-          return !v || v.toUpperCase() === 'NULL' ? 'NULL' : v;
-        })
+        ordensServico
+          .map((os) => (os.situacao_passivo_2026 || '').trim())
+          .filter((v): v is string => Boolean(v) && v.toUpperCase() !== 'NULL')
       )
     ).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
-    return situacoes.map((sit) => ({
+    const list: OpcaoFiltro[] = situacoes.map((sit) => ({
       value: sit,
-      label: sit === 'NULL' ? 'NULL (Sem valor)' : sit,
+      label: sit,
     }));
+
+    const hasSemPassivo = ordensServico.some(
+      (os) => !os.situacao_passivo_2026 || !os.situacao_passivo_2026.trim() || os.situacao_passivo_2026.trim().toUpperCase() === 'NULL'
+    );
+    if (hasSemPassivo) {
+      list.push({
+        value: '__SEM_PASSIVO__',
+        label: '(Não informado)',
+      });
+    }
+
+    return list;
   }, [ordensServico]);
 
   const handleLimparFiltros = () => {
@@ -128,8 +139,14 @@ export const ModuloProjetosUnidades: React.FC<ModuloProjetosUnidadesProps> = ({ 
           if (os.projeto_id !== proj.id) return false;
           if (filtroAnos.length > 0 && !filtroAnos.includes(String(os.ano_referencia))) return false;
           if (filtroSituacoesSgc.length > 0 && (!os.situacao_sgc || !filtroSituacoesSgc.includes(os.situacao_sgc))) return false;
-          const passivoVal = (os.situacao_passivo_2026 || '').trim() || 'NULL';
-          if (filtroSituacoesPassivo.length > 0 && !filtroSituacoesPassivo.includes(passivoVal)) return false;
+          const passivoVal = (os.situacao_passivo_2026 || '').trim();
+          if (filtroSituacoesPassivo.length > 0) {
+            const isVazio = !passivoVal || passivoVal.toUpperCase() === 'NULL';
+            const match = isVazio
+              ? filtroSituacoesPassivo.includes('__SEM_PASSIVO__')
+              : filtroSituacoesPassivo.includes(passivoVal);
+            if (!match) return false;
+          }
           return true;
         });
 

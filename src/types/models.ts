@@ -57,7 +57,7 @@ export interface OrdemServico {
   entrega_sgc: boolean;
   descricao_sgc: boolean;
   situacao_sgc: string;
-  situacao_passivo_2026: string;
+  situacao_passivo_2026?: string | null;
   ne_planejamento?: string | null;
   ne_faturamento?: string | null;
   processo_sei_pagamento?: string | null;

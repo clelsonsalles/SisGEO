@@ -438,13 +438,13 @@ export const PesquisaOrdemServicoModal: React.FC<PesquisaOrdemServicoModalProps>
 
                           {/* Passivo 2026 */}
                           <td>
-                            {os.situacao_passivo_2026 && os.situacao_passivo_2026.trim().toUpperCase() !== 'NULL' ? (
+                            {os.situacao_passivo_2026 && os.situacao_passivo_2026.trim() && os.situacao_passivo_2026.trim().toUpperCase() !== 'NULL' ? (
                               <span className="badge bg-light text-dark border small">
                                 {os.situacao_passivo_2026}
                               </span>
                             ) : (
-                              <span className="badge bg-secondary-subtle text-secondary border font-monospace small">
-                                NULL
+                              <span className="text-muted small ps-2" title="Sem passivo informado no banco de dados">
+                                —
                               </span>
                             )}
                           </td>

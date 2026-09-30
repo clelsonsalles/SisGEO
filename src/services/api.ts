@@ -47,11 +47,11 @@ export function normalizeOrdemServico(item: any): OrdemServico {
     item.SITUACAO_PASSIVO2026 ??
     item.SITUACAOPASSIVO2026;
 
-  // Caso o valor do banco de dados seja nulo, indefinido ou vazio, informa 'NULL'
+  // Retorna exatamente o dado como vem do banco de dados (sem forçar fallback para string 'NULL' quando for nulo ou vazio)
   const finalPassivo =
     rawPassivo !== null && rawPassivo !== undefined && String(rawPassivo).trim() !== ''
       ? String(rawPassivo).trim()
-      : 'NULL';
+      : null;
 
   return {
     id: Number(item.id),
