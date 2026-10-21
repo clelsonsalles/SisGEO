@@ -6,6 +6,7 @@ import { downloadDataManagementPdf } from '../utils/pdfGenerator';
 
 export type ActiveTab =
   | 'gestao-os'
+  | 'analise-alocacoes'
   | 'dashboard-analitico'
   | 'param-perfis'
   | 'param-projetos'
@@ -206,6 +207,25 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               <span>Gestão de OSs</span>
               <span className={`badge ${activeTab === 'gestao-os' ? 'bg-white text-primary' : 'bg-secondary'}`}>
                 {ordensServico.length}
+              </span>
+            </button>
+
+            {/* GRUPO NOVO: Análise de Alocações */}
+            <button
+              type="button"
+              id="btn-nav-analise-alocacoes"
+              className={`btn btn-sm d-flex align-items-center gap-2 px-3 py-2 fw-semibold rounded-2 transition-all ${
+                activeTab === 'analise-alocacoes'
+                  ? 'btn-info text-dark shadow fw-bold'
+                  : 'btn-outline-light border-secondary text-white'
+              }`}
+              onClick={() => handleSelectTab('analise-alocacoes')}
+              title="Visualizar alocações de profissionais agrupadas por mês, projeto e ordem de serviço"
+            >
+              <i className="bi bi-people-fill text-info"></i>
+              <span>Análise de Alocações</span>
+              <span className={`badge ${activeTab === 'analise-alocacoes' ? 'bg-dark text-info' : 'bg-secondary'}`}>
+                {alocacoes.length}
               </span>
             </button>
 

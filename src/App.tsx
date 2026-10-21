@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SisgosProvider } from './context/SisgosContext';
 import { Navbar, ActiveTab } from './components/Navbar';
 import { GestaoOS } from './components/GestaoOS';
+import { AnaliseAlocacoes } from './components/AnaliseAlocacoes';
 import { DashboardAnalitico } from './components/DashboardAnalitico';
 import { ParametrosPerfis } from './components/ParametrosPerfis';
 import { ParametrosProjetos } from './components/ParametrosProjetos';
@@ -37,6 +38,9 @@ export default function App() {
         <main className="flex-grow-1">
           {/* Main Module: Gestão de OSs */}
           {activeTab === 'gestao-os' && <GestaoOS onNavigate={setActiveTab} />}
+
+          {/* Módulo: Análise de Alocações */}
+          {activeTab === 'analise-alocacoes' && <AnaliseAlocacoes onNavigate={setActiveTab} />}
 
           {/* Módulo BI: Dashboard Analítico */}
           {activeTab === 'dashboard-analitico' && <DashboardAnalitico onNavigate={setActiveTab} />}
