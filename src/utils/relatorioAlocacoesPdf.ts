@@ -145,26 +145,104 @@ export function gerarRelatorioGerencialAlocacoesPDF(options: GerarRelatorioAloca
   // =========================================================================
   // 2. PAINEL DE INFORMAÇÕES DOS FILTROS APLICADOS
   // =========================================================================
-  // Preparar descrições dos filtros
-  const descSecretarias = filtros.secretarias.length > 0 ? filtros.secretarias.join(', ') : 'Todas as Secretarias';
-  const descProjetos =
-    filtros.projetosIds.length > 0
-      ? filtros.projetosIds
-          .map((id) => mapaProjetos.get(id)?.sigla_projeto || `ID ${id}`)
-          .join(', ')
-      : 'Todos os Projetos';
-  const descAnos = filtros.anos.length > 0 ? filtros.anos.join(', ') : 'Todos os Anos';
-  const descMeses = filtros.meses.length > 0 ? filtros.meses.join(', ') : 'Todos os Meses';
-  const descSituacaoSgc = filtros.situacoesSgc.length > 0 ? filtros.situacoesSgc.join(', ') : 'Todas as Situações SGC';
-  const descPassivo =
-    filtros.situacoesPassivo.length > 0
-      ? filtros.situacoesPassivo
-          .map((p) => (p === '__SEM_PASSIVO__' ? '(Não informado)' : p))
-          .join(', ')
-      : 'Todas as Situações';
-  const descBusca = filtros.termoBusca.trim() ? `"${filtros.termoBusca.trim()}"` : 'Nenhum';
+  const filtrosAtivos: { rotulo: string; valor: string }[] = [];
 
-  const filterBoxHeight = 27;
+  if (filtros.secretarias && filtros.secretarias.length > 0) {
+    filtrosAtivos.push({
+      rotulo: 'Secretaria(s)',
+      valor: filtros.secretarias.join(', '),
+    });
+  }
+
+  if (filtros.projetosIds && filtros.projetosIds.length > 0) {
+    const descProjetos = filtros.projetosIds
+      .map((id) => {
+        const proj = mapaProjetos.get(id);
+        return proj ? (proj.sigla_projeto ? proj.sigla_projeto : proj.nome_projeto) : `ID ${id}`;
+      })
+      .join(', ');
+    filtrosAtivos.push({
+      rotulo: 'Projeto(s)',
+      valor: descProjetos,
+    });
+  }
+
+  if (filtros.anos && filtros.anos.length > 0) {
+    filtrosAtivos.push({
+      rotulo: 'Ano(s)',
+      valor: filtros.anos.join(', '),
+    });
+  }
+
+  if (filtros.meses && filtros.meses.length > 0) {
+    filtrosAtivos.push({
+      rotulo: 'Mês(es)',
+      valor: filtros.meses.join(', '),
+    });
+  }
+
+  if (filtros.situacoesSgc && filtros.situacoesSgc.length > 0) {
+    filtrosAtivos.push({
+      rotulo: 'Situação(ões) SGC',
+      valor: filtros.situacoesSgc.join(', '),
+    });
+  }
+
+  if (filtros.situacoesPassivo && filtros.situacoesPassivo.length > 0) {
+    const descPassivo = filtros.situacoesPassivo
+      .map((p) => (p === '__SEM_PASSIVO__' ? '(Não informado)' : p))
+      .join(', ');
+    filtrosAtivos.push({
+      rotulo: 'Situação(ões) Passivo 2026',
+      valor: descPassivo,
+    });
+  }
+
+  if (filtros.termoBusca && filtros.termoBusca.trim().length > 0) {
+    filtrosAtivos.push({
+      rotulo: 'Termo de Busca',
+      valor: `"${filtros.termoBusca.trim()}"`,
+    });
+  }
+
+  // Medição e quebra de linhas para renderização sem colunas (linha única por filtro)
+  const lineHeight = 4.2;
+  const paddingX = 5;
+  const maxWidth = contentWidth - (paddingX * 2);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+
+  interface ItemFiltroFormatado {
+    rotulo: string;
+    prefixW: number;
+    linhas: string[];
+  }
+
+  const itensFormatados: ItemFiltroFormatado[] = [];
+
+  if (filtrosAtivos.length > 0) {
+    for (const f of filtrosAtivos) {
+      const prefix = `• ${f.rotulo}: `;
+      doc.setFont('helvetica', 'bold');
+      const prefixW = doc.getTextWidth(prefix);
+      doc.setFont('helvetica', 'normal');
+      const linhas = doc.splitTextToSize(f.valor, maxWidth - prefixW);
+      itensFormatados.push({
+        rotulo: f.rotulo,
+        prefixW,
+        linhas: Array.isArray(linhas) ? linhas : [linhas],
+      });
+    }
+  }
+
+  const totalLinhasTexto = filtrosAtivos.length === 0
+    ? 1
+    : itensFormatados.reduce((acc, curr) => acc + curr.linhas.length, 0);
+
+  const filterBoxHeight = Math.max(14, 7.5 + totalLinhasTexto * lineHeight + 2.5);
+
+  // Retângulo do painel de filtros
   doc.setFillColor(bgLight[0], bgLight[1], bgLight[2]);
   doc.setDrawColor(borderLight[0], borderLight[1], borderLight[2]);
   doc.setLineWidth(0.4);
@@ -174,68 +252,43 @@ export function gerarRelatorioGerencialAlocacoesPDF(options: GerarRelatorioAloca
   doc.setFillColor(accentBlue[0], accentBlue[1], accentBlue[2]);
   doc.roundedRect(margin, currentY, 2.5, filterBoxHeight, 1, 1, 'F');
 
+  // Título da seção
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(blueTheme[0], blueTheme[1], blueTheme[2]);
-  doc.text('PARÂMETROS E FILTROS APLICADOS NESTE RELATÓRIO:', margin + 5, currentY + 5);
+  doc.text('PARÂMETROS E FILTROS APLICADOS NESTE RELATÓRIO:', margin + paddingX, currentY + 5.2);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+  // Conteúdo dos filtros
+  if (filtrosAtivos.length === 0) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+    doc.text('Sem nenhum filtro selecionado ou aplicado', margin + paddingX, currentY + 10.5);
+  } else {
+    let lineY = currentY + 10;
+    doc.setFontSize(7.5);
 
-  // Coluna 1
-  let col1X = margin + 5;
-  let row1Y = currentY + 10;
-  doc.setFont('helvetica', 'bold');
-  doc.text('• Secretarias: ', col1X, row1Y);
-  let w = doc.getTextWidth('• Secretarias: ');
-  doc.setFont('helvetica', 'normal');
-  doc.text(doc.splitTextToSize(descSecretarias, 80)[0], col1X + w, row1Y);
+    for (const item of itensFormatados) {
+      const prefix = `• ${item.rotulo}: `;
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+      doc.text(prefix, margin + paddingX, lineY);
 
-  row1Y += 4.5;
-  doc.setFont('helvetica', 'bold');
-  doc.text('• Projetos: ', col1X, row1Y);
-  w = doc.getTextWidth('• Projetos: ');
-  doc.setFont('helvetica', 'normal');
-  doc.text(doc.splitTextToSize(descProjetos, 80)[0], col1X + w, row1Y);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(textDark[0], textDark[1], textDark[2]);
 
-  row1Y += 4.5;
-  doc.setFont('helvetica', 'bold');
-  doc.text('• Ano / Mês: ', col1X, row1Y);
-  w = doc.getTextWidth('• Ano / Mês: ');
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Anos: ${descAnos} | Meses: ${descMeses}`, col1X + w, row1Y);
+      item.linhas.forEach((subLinha, idx) => {
+        if (idx === 0) {
+          doc.text(subLinha, margin + paddingX + item.prefixW, lineY);
+        } else {
+          lineY += lineHeight;
+          doc.text(subLinha, margin + paddingX + item.prefixW, lineY);
+        }
+      });
 
-  row1Y += 4.5;
-  doc.setFont('helvetica', 'bold');
-  doc.text('• Busca Livre: ', col1X, row1Y);
-  w = doc.getTextWidth('• Busca Livre: ');
-  doc.setFont('helvetica', 'normal');
-  doc.text(descBusca, col1X + w, row1Y);
-
-  // Coluna 2
-  let col2X = margin + 96;
-  let row2Y = currentY + 10;
-  doc.setFont('helvetica', 'bold');
-  doc.text('• Situação SGC: ', col2X, row2Y);
-  w = doc.getTextWidth('• Situação SGC: ');
-  doc.setFont('helvetica', 'normal');
-  doc.text(doc.splitTextToSize(descSituacaoSgc, 75)[0], col2X + w, row2Y);
-
-  row2Y += 4.5;
-  doc.setFont('helvetica', 'bold');
-  doc.text('• Passivo 2026: ', col2X, row2Y);
-  w = doc.getTextWidth('• Passivo 2026: ');
-  doc.setFont('helvetica', 'normal');
-  doc.text(doc.splitTextToSize(descPassivo, 75)[0], col2X + w, row2Y);
-
-  row2Y += 4.5;
-  doc.setFont('helvetica', 'bold');
-  doc.text('• Total no Escopo: ', col2X, row2Y);
-  w = doc.getTextWidth('• Total no Escopo: ');
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(blueTheme[0], blueTheme[1], blueTheme[2]);
-  doc.text(`${formatNumber(dados.totalAlocacoes)} alocações em ${dados.meses.length} meses`, col2X + w, row2Y);
+      lineY += lineHeight;
+    }
+  }
 
   currentY += filterBoxHeight + 5;
 
