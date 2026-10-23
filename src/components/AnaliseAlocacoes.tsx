@@ -6,6 +6,7 @@ import { FiltroMultiplaSelecao, OpcaoFiltro } from './dashboard/FiltroMultiplaSe
 import { OrdemServicoModal } from './OrdemServicoModal';
 import { AlocacaoModal } from './AlocacaoModal';
 import { ActiveTab } from './Navbar';
+import { baixarRelatorioGerencialAlocacoesPDF } from '../utils/relatorioAlocacoesPdf';
 
 interface AnaliseAlocacoesProps {
   onNavigate?: (tab: ActiveTab) => void;
@@ -41,6 +42,9 @@ export const AnaliseAlocacoes: React.FC<AnaliseAlocacoesProps> = ({ onNavigate }
   // Controle de recolhimento dos cartões de meses e projetos
   const [mesesRecolhidos, setMesesRecolhidos] = useState<Record<string, boolean>>({});
   const [projetosRecolhidos, setProjetosRecolhidos] = useState<Record<string, boolean>>({});
+
+  // Estado de geração do relatório PDF
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
 
   // 1. Opções dinâmicas para os filtros de múltipla seleção
   const opcoesSecretarias: OpcaoFiltro[] = useMemo(() => {
@@ -433,6 +437,33 @@ export const AnaliseAlocacoes: React.FC<AnaliseAlocacoesProps> = ({ onNavigate }
     setIsAlocacaoModalOpen(true);
   };
 
+  // Geração do Relatório Gerencial em PDF
+  const handleGerarRelatorioPDF = () => {
+    setIsGeneratingPdf(true);
+    setTimeout(() => {
+      try {
+        baixarRelatorioGerencialAlocacoesPDF({
+          filtros: {
+            secretarias: filtroSecretarias,
+            projetosIds: filtroProjetos,
+            anos: filtroAnos,
+            meses: filtroMeses,
+            situacoesSgc: filtroSituacoesSgc,
+            situacoesPassivo: filtroSituacoesPassivo,
+            termoBusca,
+          },
+          dados: dadosAgrupados,
+          todosProjetos: projetos,
+          todosPerfis: perfis,
+        });
+      } catch (err) {
+        console.error('Erro ao gerar relatório em PDF:', err);
+      } finally {
+        setIsGeneratingPdf(false);
+      }
+    }, 50);
+  };
+
   // Helper de badges para Situação SGC
   const getSgcBadgeClass = (situacao: string) => {
     const s = (situacao || '').toUpperCase();
@@ -661,6 +692,41 @@ export const AnaliseAlocacoes: React.FC<AnaliseAlocacoesProps> = ({ onNavigate }
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Botão de Geração do Relatório Gerencial (Logo após apresentação dos filtros) */}
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 p-3 bg-white border rounded-3 shadow-sm">
+        <div className="d-flex align-items-center gap-3">
+          <div className="d-inline-flex p-2 bg-danger bg-opacity-10 text-danger rounded-circle">
+            <i className="bi bi-file-earmark-pdf-fill fs-4"></i>
+          </div>
+          <div>
+            <div className="fw-semibold text-dark">Relatório Gerencial de Alocações</div>
+            <div className="text-muted small">
+              Exportação oficial em formato PDF com os filtros aplicados, consolidação mensal e detalhamento de profissionais por OS
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-danger d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-sm"
+          onClick={handleGerarRelatorioPDF}
+          disabled={isGeneratingPdf}
+          title="Exportar relatório gerencial em PDF com filtros aplicados"
+        >
+          {isGeneratingPdf ? (
+            <>
+              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              <span>Gerando Relatório...</span>
+            </>
+          ) : (
+            <>
+              <i className="bi bi-file-earmark-pdf-fill fs-5"></i>
+              <span>Gerar Relatório Gerencial das Alocações</span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* 3. Indicadores Resumo dos Resultados Filtrados */}
@@ -992,8 +1058,68 @@ export const AnaliseAlocacoes: React.FC<AnaliseAlocacoesProps> = ({ onNavigate }
                                             </div>
                                           </div>
 
-                                          {/* Tabela de Alocações detalhada dentro da OS */}
+                                          {/* Dados de Empenho e Processo de Pagamento da OS */}
+                                          <div className="px-3 py-2 border-bottom bg-slate-50/60">
+                                            <div className="row g-2 align-items-center" style={{ fontSize: '12px' }}>
+                                              {/* Empenho planejado */}
+                                              <div className="col-12 col-md-4">
+                                                <div className="d-flex align-items-baseline gap-1 text-truncate" title={`Empenho planejado: ${os.ne_planejamento || 'Não informado'}`}>
+                                                  <span className="text-secondary fw-semibold text-nowrap">Empenho planejado:</span>
+                                                  {os.ne_planejamento && os.ne_planejamento.trim() ? (
+                                                    <span className="badge bg-light text-dark border font-monospace px-2 py-1 text-truncate">
+                                                      <i className="bi bi-file-earmark-ruled me-1 text-primary"></i>
+                                                      {os.ne_planejamento}
+                                                    </span>
+                                                  ) : (
+                                                    <span className="text-muted fst-italic small">Não informado</span>
+                                                  )}
+                                                </div>
+                                              </div>
+
+                                              {/* Empenho no faturamento */}
+                                              <div className="col-12 col-md-4">
+                                                <div className="d-flex align-items-baseline gap-1 text-truncate" title={`Empenho no faturamento: ${os.ne_faturamento || 'Não informado'}`}>
+                                                  <span className="text-secondary fw-semibold text-nowrap">Empenho no faturamento:</span>
+                                                  {os.ne_faturamento && os.ne_faturamento.trim() ? (
+                                                    <span className="badge bg-success-subtle text-success-emphasis border border-success-subtle font-monospace px-2 py-1 text-truncate">
+                                                      <i className="bi bi-receipt me-1"></i>
+                                                      {os.ne_faturamento}
+                                                    </span>
+                                                  ) : (
+                                                    <span className="text-muted fst-italic small">Não informado</span>
+                                                  )}
+                                                </div>
+                                              </div>
+
+                                              {/* Processo de Pagamento */}
+                                              <div className="col-12 col-md-4">
+                                                <div className="d-flex align-items-baseline gap-1 text-truncate" title={`Processo de Pagamento: ${os.processo_sei_pagamento || 'Não informado'}`}>
+                                                  <span className="text-secondary fw-semibold text-nowrap">Processo de Pagamento:</span>
+                                                  {os.processo_sei_pagamento && os.processo_sei_pagamento.trim() ? (
+                                                    <span className="badge bg-info-subtle text-info-emphasis border border-info-subtle font-monospace px-2 py-1 text-truncate">
+                                                      <i className="bi bi-folder2-open me-1"></i>
+                                                      {os.processo_sei_pagamento}
+                                                    </span>
+                                                  ) : (
+                                                    <span className="text-muted fst-italic small">Não informado</span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          {/* Seção: Dados das Alocações dentro da OS */}
                                           <div className="card-body p-0">
+                                            <div className="px-3 py-1.5 bg-light border-bottom d-flex align-items-center justify-content-between">
+                                              <div className="d-flex align-items-center gap-1.5 text-secondary fw-semibold" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                <i className="bi bi-people-fill text-primary"></i>
+                                                <span>Dados das Alocações ({mesData.mes})</span>
+                                              </div>
+                                              <span className="badge bg-white text-secondary border" style={{ fontSize: '10px' }}>
+                                                {osAlocs.length} {osAlocs.length === 1 ? 'profissional alocado' : 'profissionais alocados'}
+                                              </span>
+                                            </div>
+
                                             <div className="table-responsive" style={{ maxHeight: '280px' }}>
                                               <table className="table table-sm table-hover align-middle mb-0" style={{ fontSize: '12px' }}>
                                                 <thead className="table-light sticky-top" style={{ zIndex: 1 }}>
