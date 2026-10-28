@@ -110,15 +110,9 @@ export function gerarRelatorioGerencialAlocacoesPDF(options: GerarRelatorioAloca
   doc.setFillColor(accentBlue[0], accentBlue[1], accentBlue[2]);
   doc.rect(0, 5, pageWidth, 1.5, 'F');
 
-  currentY = 14;
+  currentY = 13;
 
   // Título e Subtítulo
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(accentBlue[0], accentBlue[1], accentBlue[2]);
-  doc.text('SISGOS • SISTEMA INTEGRADO DE GESTÃO DE ORDENS DE SERVIÇO', margin, currentY);
-
-  currentY += 5;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(primaryNavy[0], primaryNavy[1], primaryNavy[2]);
@@ -561,11 +555,6 @@ export function gerarRelatorioGerencialAlocacoesPDF(options: GerarRelatorioAloca
       doc.setLineWidth(0.3);
       doc.line(margin, 9, pageWidth - margin, 9);
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.8);
-      doc.setTextColor(blueTheme[0], blueTheme[1], blueTheme[2]);
-      doc.text('SisGOS • RELATÓRIO GERENCIAL DAS ALOCAÇÕES', margin, 6.5);
-
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6.5);
       doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
@@ -577,12 +566,9 @@ export function gerarRelatorioGerencialAlocacoesPDF(options: GerarRelatorioAloca
     doc.setLineWidth(0.3);
     doc.line(margin, pageHeight - 9, pageWidth - margin, pageHeight - 9);
 
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.8);
     doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
-    doc.text('SisGOS v1.0 • Sistema de Gestão de Ordens de Serviço & Alocações de Perfil', margin, pageHeight - 5);
-
-    doc.setFont('helvetica', 'bold');
     doc.text(`Página ${p} de ${totalPages}`, pageWidth - margin, pageHeight - 5, { align: 'right' });
   }
 

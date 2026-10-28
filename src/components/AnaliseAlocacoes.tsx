@@ -7,6 +7,7 @@ import { OrdemServicoModal } from './OrdemServicoModal';
 import { AlocacaoModal } from './AlocacaoModal';
 import { ActiveTab } from './Navbar';
 import { baixarRelatorioGerencialAlocacoesPDF } from '../utils/relatorioAlocacoesPdf';
+import { baixarRelatorioConsolidadoAlocacoesPDF } from '../utils/relatorioConsolidadoAlocacoesPdf';
 
 interface AnaliseAlocacoesProps {
   onNavigate?: (tab: ActiveTab) => void;
@@ -43,8 +44,9 @@ export const AnaliseAlocacoes: React.FC<AnaliseAlocacoesProps> = ({ onNavigate }
   const [mesesRecolhidos, setMesesRecolhidos] = useState<Record<string, boolean>>({});
   const [projetosRecolhidos, setProjetosRecolhidos] = useState<Record<string, boolean>>({});
 
-  // Estado de geração do relatório PDF
+  // Estado de geração dos relatórios PDF
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
+  const [isGeneratingConsolidadoPdf, setIsGeneratingConsolidadoPdf] = useState<boolean>(false);
 
   // 1. Opções dinâmicas para os filtros de múltipla seleção
   const opcoesSecretarias: OpcaoFiltro[] = useMemo(() => {
@@ -464,6 +466,34 @@ export const AnaliseAlocacoes: React.FC<AnaliseAlocacoesProps> = ({ onNavigate }
     }, 50);
   };
 
+  // Geração do Relatório Consolidado das Alocações em PDF
+  const handleGerarRelatorioConsolidadoPDF = () => {
+    setIsGeneratingConsolidadoPdf(true);
+    setTimeout(() => {
+      try {
+        baixarRelatorioConsolidadoAlocacoesPDF({
+          filtros: {
+            secretarias: filtroSecretarias,
+            projetosIds: filtroProjetos,
+            anos: filtroAnos,
+            meses: filtroMeses,
+            situacoesSgc: filtroSituacoesSgc,
+            situacoesPassivo: filtroSituacoesPassivo,
+            termoBusca,
+          },
+          alocacoes,
+          ordensServico,
+          projetos,
+          perfis,
+        });
+      } catch (err) {
+        console.error('Erro ao gerar relatório consolidado em PDF:', err);
+      } finally {
+        setIsGeneratingConsolidadoPdf(false);
+      }
+    }, 50);
+  };
+
   // Helper de badges para Situação SGC
   const getSgcBadgeClass = (situacao: string) => {
     const s = (situacao || '').toUpperCase();
@@ -694,39 +724,61 @@ export const AnaliseAlocacoes: React.FC<AnaliseAlocacoesProps> = ({ onNavigate }
         </div>
       </div>
 
-      {/* Botão de Geração do Relatório Gerencial (Logo após apresentação dos filtros) */}
+      {/* Botões de Geração de Relatórios em PDF (Logo após apresentação dos filtros) */}
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 p-3 bg-white border rounded-3 shadow-sm">
         <div className="d-flex align-items-center gap-3">
-          <div className="d-inline-flex p-2 bg-danger bg-opacity-10 text-danger rounded-circle">
-            <i className="bi bi-file-earmark-pdf-fill fs-4"></i>
+          <div className="d-inline-flex p-2 bg-primary bg-opacity-10 text-primary rounded-circle">
+            <i className="bi bi-file-earmark-bar-graph-fill fs-4"></i>
           </div>
           <div>
-            <div className="fw-semibold text-dark">Relatório Gerencial de Alocações</div>
+            <div className="fw-semibold text-dark">Relatórios Oficiais em PDF</div>
             <div className="text-muted small">
-              Exportação oficial em formato PDF com os filtros aplicados, consolidação mensal e detalhamento de profissionais por OS
+              Exporte relatórios consolidados com dashboards e gráficos, ou o relatório detalhado por mês, projeto e OS
             </div>
           </div>
         </div>
 
-        <button
-          type="button"
-          className="btn btn-danger d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-sm"
-          onClick={handleGerarRelatorioPDF}
-          disabled={isGeneratingPdf}
-          title="Exportar relatório gerencial em PDF com filtros aplicados"
-        >
-          {isGeneratingPdf ? (
-            <>
-              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-              <span>Gerando Relatório...</span>
-            </>
-          ) : (
-            <>
-              <i className="bi bi-file-earmark-pdf-fill fs-5"></i>
-              <span>Gerar Relatório Gerencial das Alocações</span>
-            </>
-          )}
-        </button>
+        <div className="d-flex align-items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            className="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-sm"
+            onClick={handleGerarRelatorioConsolidadoPDF}
+            disabled={isGeneratingConsolidadoPdf}
+            title="Exportar relatório gerencial consolidado com dashboards, tabelas e gráficos dos 5 indicadores"
+          >
+            {isGeneratingConsolidadoPdf ? (
+              <>
+                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                <span>Gerando Consolidado...</span>
+              </>
+            ) : (
+              <>
+                <i className="bi bi-file-earmark-bar-graph-fill fs-5"></i>
+                <span>Gerar Relatório Consolidado das  Alocações</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-outline-danger d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-sm"
+            onClick={handleGerarRelatorioPDF}
+            disabled={isGeneratingPdf}
+            title="Exportar relatório gerencial em PDF com filtros aplicados e detalhamento de profissionais"
+          >
+            {isGeneratingPdf ? (
+              <>
+                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                <span>Gerando Detalhado...</span>
+              </>
+            ) : (
+              <>
+                <i className="bi bi-file-earmark-pdf-fill fs-5"></i>
+                <span>Gerar Relatório Gerencial das Alocações</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* 3. Indicadores Resumo dos Resultados Filtrados */}
